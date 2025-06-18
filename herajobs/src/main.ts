@@ -1,4 +1,4 @@
-import './style.css'
+//hello
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="homepage">
