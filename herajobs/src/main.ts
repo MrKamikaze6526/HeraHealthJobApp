@@ -1,5 +1,6 @@
 //hello
-
+// whats up
+import './style.css'
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="homepage">
     <header class="header">
