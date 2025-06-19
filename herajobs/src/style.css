@@ -1,25 +1,35 @@
+/*
+  Global CSS for Job Application Tracker
+  - Uses CSS variables for theme colors and fonts
+  - Responsive and modern styles for all app components
+*/
+
 :root {
-  --primary-blue: #2563eb;
+  /* Color palette and font variables */
+  --primary-blue: #1a237e;
   --light-blue: #3b82f6;
-  --dark-blue: #1e40af;
+  --dark-blue: #0d1333;
   --white: #ffffff;
   --light-gray: #f8fafc;
-  --text-gray: #475569;
-
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --text-gray: #222b45;
+  --nav-bg: #f4f7fa;
+  --nav-link-hover: #e3e9f7;
+  --accent: #00bcd4;
+  font-family: 'Inter', 'Segoe UI', Arial, Helvetica, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
+  /* System color scheme and rendering tweaks */
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Link styles */
 a {
   font-weight: 500;
   color: #646cff;
@@ -29,31 +39,23 @@ a:hover {
   color: #535bf2;
 }
 
+/* Body and app container styles */
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
-
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Arial, Helvetica, sans-serif;
   line-height: 1.6;
   color: var(--text-gray);
   background: var(--white);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  min-height: 100vh;
 }
 
+/* Logo and branding styles */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -71,6 +73,7 @@ h1 {
   filter: drop-shadow(0 0 2em #3178c6aa);
 }
 
+/* Card and utility classes */
 .card {
   padding: 2em;
 }
@@ -79,6 +82,7 @@ h1 {
   color: #888;
 }
 
+/* Button styles */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -98,143 +102,358 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Container utility class for layout */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
+/* Header and navigation bar styles */
 .header {
-  background: var(--white);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: var(--nav-bg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
   position: fixed;
   top: 0;
   width: 100%;
   z-index: 1000;
+  height: 64px;
 }
 
-.header .container {
+.header .container.nav-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 20px;
+  height: 64px;
+  padding: 0 32px;
+  max-width: 1200px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-blue);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: bold;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+}
+.logo-placeholder::after {
+  content: "H";
+}
+
+.logo {
+  font-size: 1.35rem;
+  margin: 0;
+  color: var(--primary-blue);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .nav {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
+  align-items: center;
 }
 
-.nav a {
-  color: var(--text-gray);
-  text-decoration: none;
+.nav-link {
+  position: relative;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  font-size: 1.05rem;
   font-weight: 500;
-  transition: color 0.3s;
+  color: var(--primary-blue);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+  text-decoration: none;
+  outline: none;
 }
 
-.nav a:hover {
+.nav-link.active {
+  background: var(--primary-blue);
+  color: var(--white) !important;
+}
+
+.nav-link:not(.active):hover {
+  background: var(--nav-link-hover);
   color: var(--primary-blue);
 }
 
-.hero {
-  background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
-  color: var(--white);
-  padding: 8rem 0 4rem;
-  text-align: center;
+main {
   margin-top: 80px;
 }
 
+/* Hero section styles */
+.hero {
+  background: linear-gradient(135deg, var(--primary-blue) 70%, var(--light-blue) 100%);
+  color: var(--white);
+  padding: 4.5rem 0 2.5rem;
+  text-align: center;
+  margin-top: 0;
+}
+
 .hero h2 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: 2.3rem;
+  margin-bottom: 1.1rem;
   font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .hero p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-  opacity: 0.9;
+  font-size: 1.15rem;
+  margin-bottom: 2.2rem;
+  opacity: 0.97;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.cta-button {
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* CTA button styles */
+.cta-button.primary {
   background: var(--white);
   color: var(--primary-blue);
-  padding: 1rem 2rem;
+  padding: 0.9rem 2.1rem;
   border: none;
   border-radius: 50px;
-  font-size: 1.1rem;
+  font-size: 1.08rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(26,35,126,0.08);
 }
 
-.cta-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.services {
-  padding: 5rem 0;
-  background: var(--light-gray);
-}
-
-.services h3 {
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 3rem;
-  color: var(--dark-blue);
-}
-
-.services-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.service-card {
-  background: var(--white);
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transition: transform 0.3s;
-}
-
-.service-card:hover {
-  transform: translateY(-5px);
-}
-
-.service-card h4 {
-  color: var(--primary-blue);
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.service-card p {
-  color: var(--text-gray);
-}
-
-.footer {
-  background: var(--dark-blue);
+.cta-button.secondary {
+  background: transparent;
   color: var(--white);
+  padding: 0.9rem 2.1rem;
+  border: 2px solid var(--white);
+  border-radius: 50px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cta-button.primary:hover {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.cta-button.secondary:hover {
+  background: var(--white);
+  color: var(--primary-blue);
+}
+
+/* Features section styles */
+.features {
+  padding: 3.5rem 0 2rem;
+  background: var(--white);
+}
+
+.features h3 {
   text-align: center;
-  padding: 2rem 0;
+  font-size: 2rem;
+  margin-bottom: 2.2rem;
+  color: var(--primary-blue);
+  font-weight: 700;
 }
 
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Feature card with animated gradient on hover */
+.feature-card {
+  background: var(--light-gray);
+  padding: 2rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(26,35,126,0.07);
+  text-align: center;
+  transition: box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid #e3e9f7;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.feature-card::after {
+  /* Animated, light gradient overlay for hover effect */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #b3cfff, #e0e7ff, #a7ffe7, #b3cfff);
+  background-size: 300% 300%;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 0;
+  animation: none;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 32px rgba(26,35,126,0.18);
+  border-color: var(--primary-blue);
+}
+
+.feature-card:hover::after {
+  opacity: 1;
+  animation: feature-gradient-move 8s linear infinite;
+}
+
+@keyframes feature-gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.feature-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.feature-icon {
+  font-size: 2.2rem;
+  margin-bottom: 1.1rem;
+  line-height: 1;
+}
+
+.feature-card h4 {
+  color: var(--primary-blue);
+  font-size: 1.18rem;
+  margin-bottom: 0.7rem;
+  font-weight: 600;
+}
+
+.feature-card p {
+  color: var(--text-gray);
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+/* Hide stats and footer (not used) */
+.stats, .footer, .stats-grid, .stat-item { display: none !important; }
+
+/* Login page and form styles */
+.login-section {
+  background: var(--light-gray);
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.login-container {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(26,35,126,0.08);
+  padding: 2.5rem 2rem 2rem 2rem;
+  max-width: 350px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 1.1rem;
+}
+
+.login-form label {
+  font-weight: 600;
+  color: var(--primary-blue);
+  margin-bottom: 0.2rem;
+}
+
+.login-form input[type="email"],
+.login-form input[type="password"] {
+  padding: 0.7rem 1rem;
+  border: 1px solid #b3cfff;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: var(--light-gray);
+  transition: border 0.2s;
+}
+
+.login-form input:focus {
+  border: 1.5px solid var(--primary-blue);
+  outline: none;
+}
+
+.login-form button[type="submit"] {
+  margin-top: 0.5rem;
+}
+
+/* Responsive styles for mobile and small screens */
 @media (max-width: 768px) {
-  .hero h2 {
-    font-size: 2rem;
+  .header .container.nav-container {
+    flex-direction: column;
+    gap: 0.5rem;
+    height: auto;
+    padding: 0 10px;
   }
-  
+  .logo-section {
+    justify-content: center;
+  }
   .nav {
-    gap: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
   }
-  
-  .services-grid {
+  .hero {
+    padding: 3rem 0 1.5rem;
+  }
+  .hero h2 {
+    font-size: 1.5rem;
+  }
+  .features-grid {
     grid-template-columns: 1fr;
+    gap: 1.2rem;
   }
 }
 
+@media (max-width: 480px) {
+  .features h3 {
+    font-size: 1.2rem;
+  }
+  .feature-card h4 {
+    font-size: 1rem;
+  }
+}
+
+/* Light mode overrides for color scheme */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
