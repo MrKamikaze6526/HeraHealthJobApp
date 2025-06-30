@@ -141,15 +141,33 @@ async function renderPage() {
     }
   // Route: Why Hera page
   } else if (hash === '#why-hera') {
-    whyActive = 'active';
-    mainContent = `
-      <section class="hero">
-        <div class="container">
-          <h2>Why Hera?</h2>
-          <p>Discover what makes Hera Health Solutions a great place to work.</p>
+  whyActive = 'active';
+  mainContent = `
+    <section class="hero">
+      <div class="container">
+        <h2>Why Hera?</h2>
+        <p>Discover what makes Hera Health Solutions a great place to work.</p>
+      </div>
+    </section>
+
+    <section class="why-blocks">
+      <div class="container">
+        <div class="block">
+          <h3>Purpose-Driven Innovation</h3>
+          <p>We develop advanced, sustainable drug delivery solutions that improve patient care.</p>
         </div>
-      </section>
-    `;
+        <div class="block">
+          <h3>Growth & Development</h3>
+          <p>Our team gains mentorship, cross-functional skills, and leadership experience.</p>
+        </div>
+        <div class="block">
+          <h3>Inclusive Culture</h3>
+          <p>We foster a diverse and collaborative workplace where every voice matters.</p>
+        </div>
+      </div>
+    </section>
+  `;
+
   // Route: Log In page
   } else if (hash === '#login') {
     loginActive = 'active';
