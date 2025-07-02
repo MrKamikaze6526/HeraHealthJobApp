@@ -1,6 +1,11 @@
 // Import global styles
 import './style.css'
 import { createClient } from '@supabase/supabase-js';
+import { renderHome } from './home.ts';
+import { renderWhyHera } from './why-hera.ts';
+import { renderJobs } from './jobs.ts';
+import { renderAdmin } from './admin.ts';
+import { renderApply } from './apply.ts';
 
 // Initialize Supabase client
 const supabaseUrl = 'https://fgiddweoaadwbbagywer.supabase.co';
@@ -115,60 +120,12 @@ async function renderPage() {
   let mainContent = '';
   let homeActive = '', jobsActive = '', whyActive = '', loginActive = '';
 
-  // Route: Jobs page
   if (hash === '#jobs') {
-    // Only allow access if logged in
-    if (!isLoggedIn) {
-      mainContent = `
-        <section class="login-section">
-          <div class="container login-container">
-            <h2>Login Required</h2>
-            <p style="margin-bottom:1rem;">You must be logged in to access job postings.</p>
-            <button class="cta-button primary" id="go-login">Go to Log In</button>
-          </div>
-        </section>
-      `;
-    } else {
-      jobsActive = 'active';
-      mainContent = `
-        <section class="hero">
-          <div class="container">
-            <h2>Open Positions</h2>
-            <div id="job-listings"></div>
-          </div>
-        </section>
-      `;
-    }
-  // Route: Why Hera page
+    jobsActive = 'active';
+    mainContent = await renderJobs(isLoggedIn);
   } else if (hash === '#why-hera') {
-  whyActive = 'active';
-  mainContent = `
-    <section class="hero">
-      <div class="container">
-        <h2>Why Hera?</h2>
-        <p>Discover what makes Hera Health Solutions a great place to work.</p>
-      </div>
-    </section>
-
-    <section class="why-blocks">
-      <div class="container">
-        <div class="block">
-          <h3>Purpose-Driven Innovation</h3>
-          <p>We develop advanced, sustainable drug delivery solutions that improve patient care.</p>
-        </div>
-        <div class="block">
-          <h3>Growth & Development</h3>
-          <p>Our team gains mentorship, cross-functional skills, and leadership experience.</p>
-        </div>
-        <div class="block">
-          <h3>Inclusive Culture</h3>
-          <p>We foster a diverse and collaborative workplace where every voice matters.</p>
-        </div>
-      </div>
-    </section>
-  `;
-
-  // Route: Log In page
+    whyActive = 'active';
+    mainContent = renderWhyHera();
   } else if (hash === '#login') {
     loginActive = 'active';
     mainContent = `
@@ -189,7 +146,6 @@ async function renderPage() {
         </div>
       </section>
     `;
-  // Route: Register page
   } else if (hash === '#register') {
     loginActive = '';
     mainContent = `
@@ -210,87 +166,15 @@ async function renderPage() {
         </div>
       </section>
     `;
-  // Route: Admin page (password-only, not user login)
   } else if (hash === '#admin') {
-    // Check if admin is authenticated in this session
     const adminAuthed = sessionStorage.getItem('adminAuthed') === 'true';
-    if (adminAuthed) {
-      // jobs fetch removed as it is not used directly here
-    }
-    if (!adminAuthed) {
-      mainContent = `
-        <section class="login-section">
-          <div class="container login-container">
-            <h2>Admin Access</h2>
-            <form id="admin-auth-form">
-              <label for="admin-password">Admin Password</label>
-              <input type="password" id="admin-password" name="admin-password" required placeholder="Enter admin password" />
-              <button type="submit" class="cta-button primary">Enter Admin</button>
-              <div class="login-error" style="color:#c00;margin-top:0.5rem;"></div>
-            </form>
-          </div>
-        </section>
-      `;
-    } else {
-      mainContent = `
-        <section class="hero">
-          <div class="container">
-            <h2>Admin: Job Opportunities</h2>
-            <div id="admin-job-listings" style="margin-bottom:2rem;"></div>
-            <button id="show-job-form-btn" class="cta-button primary" style="margin-bottom:1.5rem;">Add New Job</button>
-            <form id="job-form" style="display:none;">
-              <input type="text" id="job-title" placeholder="Job Title" required style="margin-bottom:0.5rem;width:100%;padding:0.5rem;" />
-              <textarea id="job-desc" placeholder="Job Description" required style="margin-bottom:0.5rem;width:100%;padding:0.5rem;"></textarea>
-              <textarea id="job-required" placeholder="Required Skills/Education" required style="margin-bottom:0.5rem;width:100%;padding:0.5rem;"></textarea>
-              <textarea id="job-recommended" placeholder="Recommended Skills/Education" style="margin-bottom:0.5rem;width:100%;padding:0.5rem;"></textarea>
-              <input type="text" id="job-salary" placeholder="Salary (e.g. $60,000 - $80,000)" style="margin-bottom:0.5rem;width:100%;padding:0.5rem;" />
-              <button type="submit" class="cta-button primary">Post Job</button>
-            </form>
-          </div>
-        </section>
-      `;
-    }
-  // Default route: Home page
+    mainContent = renderAdmin(adminAuthed);
+  } else if (window.location.hash.startsWith('#apply-')) {
+    const jobId = window.location.hash.replace('#apply-', '');
+    mainContent = await renderApply(jobId);
   } else {
     homeActive = 'active';
-    mainContent = `
-      <section class="hero">
-        <div class="container">
-          <h2>Track Your Career Journey</h2>
-          <p>Organize, monitor, and stay updated on your job applications at Hera Health Solutions. Take the next step in your professional growth with a team dedicated to innovation and impact.</p>
-          <div class="hero-buttons">
-            <button class="cta-button secondary">View Open Positions</button>
-          </div>
-        </div>
-      </section>
-      <section class="features">
-        <div class="container">
-          <h3>Why Track Your Career with Hera?</h3>
-          <div class="features-grid">
-            <div class="feature-card">
-              <div class="feature-icon">🧬</div>
-              <h4>Innovative Research</h4>
-              <p>Be part of a team advancing long-acting treatments and bioerodible drug delivery technology.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">🌍</div>
-              <h4>Global Impact</h4>
-              <p>Help unlock the true potential of therapeutics for patients worldwide.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">🤝</div>
-              <h4>Collaborative Culture</h4>
-              <p>Work with passionate professionals dedicated to improving patient outcomes.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">🔔</div>
-              <h4>Stay Notified</h4>
-              <p>Get instant updates on your application status and new opportunities at Hera.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    `;
+    mainContent = renderHome({ isLoggedIn });
   }
 
   // Render the main app layout and navigation
