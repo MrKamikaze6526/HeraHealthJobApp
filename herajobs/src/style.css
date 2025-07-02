@@ -2,6 +2,10 @@
   Global CSS for Job Application Tracker
   - Uses CSS variables for theme colors and fonts
   - Responsive and modern styles for all app components
+
+  hex code for navy blue title box: #072044
+  Open Sans Soft Regular
+  hex code for buttons in box: light blue #7bb3f5
 */
 
 :root {
@@ -439,6 +443,193 @@ main {
 
 .login-section .login-error {
   text-align: center;
+}
+
+/* --- Apply Page Improvements --- */
+.hero.apply-hero {
+  background: linear-gradient(135deg, var(--primary-blue) 70%, var(--light-blue) 100%) !important;
+  color: #fff !important;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4.5rem;
+}
+
+.apply-form-container {
+  background: #ffffff !important;
+  color: #1a237e !important;
+  max-width: 500px;
+  margin: 2rem auto 0 auto;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  border: 2px solid #e3e9f7;
+}
+
+.apply-form-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.apply-form-container label {
+  display: block;
+  color: #1a237e !important;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.apply-form-container input[type="text"],
+.apply-form-container input[type="email"],
+.apply-form-container input[type="tel"] {
+  border-radius: 8px;
+  border: 2px solid #cfd8dc;
+  padding: 0.9rem 1.2rem;
+  font-size: 1.05rem;
+  outline: none;
+  background: #ffffff !important;
+  color: #1a237e !important;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.apply-form-container input[type="file"] {
+  border-radius: 8px;
+  border: 2px solid #cfd8dc;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  outline: none;
+  background: #ffffff !important;
+  color: #1a237e !important;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.apply-form-container input[type="text"]:focus,
+.apply-form-container input[type="email"]:focus,
+.apply-form-container input[type="tel"]:focus,
+.apply-form-container input[type="file"]:focus {
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 3px rgba(26,35,126,0.12);
+  background: #ffffff !important;
+}
+
+.apply-form-container .cta-button.primary {
+  margin-top: 1.5rem;
+  width: 100%;
+  border-radius: 50px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  background: var(--primary-blue) !important;
+  color: #ffffff !important;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.apply-form-container .cta-button.primary:hover {
+  background: var(--dark-blue) !important;
+  transform: translateY(-1px);
+}
+
+.apply-form-container .login-error {
+  color: #c00 !important;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.apply-form-container .file-info {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.apply-form-container .file-info small {
+  color: #666;
+}
+
+.apply-form-container label span {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.apply-form-container .success-message {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724 !important;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.apply-form-container input:invalid {
+  border-color: #e74c3c;
+}
+
+.apply-form-container input:valid {
+  border-color: #27ae60;
+}
+
+#submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#submit-btn:disabled:hover {
+  background: var(--primary-blue) !important;
+  transform: none !important;
+}
+
+/* Mobile Responsiveness for Admin */
+@media (max-width: 768px) {
+  .admin-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .applicants-modal-content {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+  
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .applicant-card {
+    padding: 1rem 1.5rem;
+  }
+  
+  .applicant-contact {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .applicant-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+  }
+  
+  .resume-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
 
 /* Responsive styles for mobile and small screens */

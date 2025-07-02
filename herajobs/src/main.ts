@@ -7,6 +7,9 @@ import { renderJobs } from './jobs.ts';
 import { renderAdmin } from './admin.ts';
 import { renderApply } from './apply.ts';
 
+// Import setup utilities
+import { setupResumesBucket } from './supabase-setup.ts';
+
 // Initialize Supabase client
 const supabaseUrl = 'https://fgiddweoaadwbbagywer.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnaWRkd2VvYWFkd2JiYWd5d2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4OTA4MDAsImV4cCI6MjA2NjQ2NjgwMH0.T6dOkxWChS5VVhtris1rGbL7m8VReGf2-x9Ou7Hstdg';
@@ -52,13 +55,72 @@ async function getCurrentUser() {
   return user;
 }
 
+// Helper: Ensure resumes bucket exists
+async function ensureResumesBucket(): Promise<void> {
+  try {
+    // Check if bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const resumesBucket = buckets?.find(bucket => bucket.name === 'resumes');
+    
+    if (!resumesBucket) {
+      // Create bucket if it doesn't exist
+      const { error } = await supabase.storage.createBucket('resumes', {
+        public: true,
+        allowedMimeTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        fileSizeLimit: 10485760 // 10MB limit
+      });
+      
+      if (error) {
+        console.error('Error creating resumes bucket:', error);
+        throw new Error('Failed to create file storage. Please contact support.');
+      }
+      
+      console.log('Resumes bucket created successfully');
+    }
+  } catch (error: any) {
+    console.error('Error ensuring bucket exists:', error);
+    // Don't throw here, let the upload function handle it
+  }
+}
+
 // Helper: Upload resume to Supabase Storage
 async function uploadResume(file: File, userId: string, jobId: string): Promise<string> {
-  const fileExt = file.name.split('.').pop();
-  const filePath = `resumes/${userId}_${jobId}_${Date.now()}.${fileExt}`;
-  const { error } = await supabase.storage.from('resumes').upload(filePath, file, { upsert: true });
-  if (error) throw new Error(error.message);
-  return filePath;
+  try {
+    // Ensure bucket exists first
+    await ensureResumesBucket();
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Please upload a PDF, DOC, or DOCX file only.');
+    }
+    
+    // Validate file size (10MB limit)
+    if (file.size > 10485760) {
+      throw new Error('File size must be less than 10MB.');
+    }
+    
+    const fileExt = file.name.split('.').pop();
+    const filePath = `resumes/${userId}_${jobId}_${Date.now()}.${fileExt}`;
+    
+    const { error } = await supabase.storage.from('resumes').upload(filePath, file, { upsert: true });
+    
+    if (error) {
+      console.error('Upload error:', error);
+      if (error.message.includes('Bucket not found')) {
+        throw new Error('File storage is not properly configured. Please contact support.');
+      } else if (error.message.includes('not allowed')) {
+        throw new Error('File type not allowed. Please upload PDF, DOC, or DOCX files only.');
+      } else {
+        throw new Error('Failed to upload file. Please try again.');
+      }
+    }
+    
+    return filePath;
+  } catch (error: any) {
+    console.error('Resume upload error:', error);
+    throw error;
+  }
 }
 
 // Helper: Get public URL for resume
@@ -70,24 +132,50 @@ export function getResumeUrl(path: string): string {
 // Helper: Submit application
 export async function submitApplication({ jobId, name, email, phone, resumeFile }: { jobId: string, name: string, email: string, phone: string, resumeFile: File }): Promise<void> {
   const user = await getCurrentUser();
-  if (!user) throw new Error('Not logged in');
+  if (!user) throw new Error('You must be logged in to submit an application.');
+  
   let resumePath = '';
   if (resumeFile) {
-    resumePath = await uploadResume(resumeFile, user.id, jobId);
-  }
-  const { error } = await supabase.from('applications').insert([
-    {
-      job_id: jobId,
-      user_id: user.id,
-      name,
-      email,
-      phone,
-      resume_path: resumePath,
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
+    try {
+      resumePath = await uploadResume(resumeFile, user.id, jobId);
+    } catch (uploadError: any) {
+      console.error('Resume upload error:', uploadError);
+      throw new Error(`Resume upload failed: ${uploadError.message}`);
     }
-  ]);
-  if (error) throw new Error(error.message);
+  }
+  
+  try {
+    const { error } = await supabase.from('applications').insert([
+      {
+        job_id: jobId,
+        user_id: user.id,
+        name,
+        email,
+        phone,
+        resume_path: resumePath,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+      }
+    ]);
+    
+    if (error) {
+      console.error('Application submission error:', error);
+      
+      // Handle specific error cases
+      if (error.message.includes('row-level security')) {
+        throw new Error('Database security policy error. Please contact support or check the RLS setup guide.');
+      } else if (error.message.includes('duplicate key')) {
+        throw new Error('You have already applied to this position.');
+      } else if (error.message.includes('foreign key')) {
+        throw new Error('Invalid job ID. Please refresh the page and try again.');
+      } else {
+        throw new Error(`Application submission failed: ${error.message}`);
+      }
+    }
+  } catch (dbError: any) {
+    console.error('Database error:', dbError);
+    throw dbError;
+  }
 }
 
 // Helper: Get applications for a user
@@ -315,6 +403,18 @@ async function renderPage() {
       if (adminJobListings) adminJobListings.innerHTML = `<div style="color:#c00;text-align:center;">Error loading jobs: ${error.message}</div>`;
       return;
     }
+    
+    // Update admin stats if on admin page
+    if (hash === '#admin' && sessionStorage.getItem('adminAuthed') === 'true') {
+      const totalJobsSpan = document.getElementById('total-jobs');
+      if (totalJobsSpan) totalJobsSpan.textContent = jobs?.length.toString() || '0';
+      
+      // Get total applications count
+      const { data: allApps } = await supabase.from('applications').select('id');
+      const totalAppsSpan = document.getElementById('total-applications');
+      if (totalAppsSpan) totalAppsSpan.textContent = allApps?.length.toString() || '0';
+    }
+    
     const jobListings = document.getElementById('job-listings');
     const adminJobListings = document.getElementById('admin-job-listings');
     // Render jobs as dropdowns or show empty message
@@ -337,7 +437,16 @@ async function renderPage() {
             <p><strong>Required Skills/Education:</strong> ${job.required || '-'}</p>
             <p><strong>Recommended Skills/Education:</strong> ${job.recommended || '-'}</p>
             <p><strong>Salary:</strong> ${job.salary || '-'}</p>
-            ${isAdmin ? `<button class="delete-job-btn" data-job-id="${jobId ?? ''}" style="margin-top:1rem;background:#c00;color:#fff;border:none;padding:0.3rem 0.8rem;border-radius:6px;cursor:pointer;">Delete</button>` : ''}
+            ${isAdmin ? `
+              <div class="admin-job-actions" style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
+                <button class="view-applicants-btn" data-job-id="${jobId ?? ''}" data-job-title="${job.title || '(No Title)'}" style="background:var(--primary-blue);color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
+                  👥 View Applications
+                </button>
+                <button class="delete-job-btn" data-job-id="${jobId ?? ''}" style="background:#dc3545;color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
+                  🗑️ Delete Job
+                </button>
+              </div>
+            ` : ''}
           </div>
         </div>
         `;
@@ -356,19 +465,36 @@ async function renderPage() {
           }
         });
       });
-      // Delete logic for admin
+      // Admin actions
       if (isAdmin) {
+        // View applicants logic
+        container.querySelectorAll('.view-applicants-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const jobId = (btn as HTMLElement).getAttribute('data-job-id');
+            const jobTitle = (btn as HTMLElement).getAttribute('data-job-title');
+            if (jobId && jobTitle) {
+              const { showApplicantsModal } = await import('./admin.ts');
+              await showApplicantsModal(jobId, jobTitle);
+            }
+          });
+        });
+        
+        // Delete logic
         container.querySelectorAll('.delete-job-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             const jobId = (btn as HTMLElement).getAttribute('data-job-id');
             if (jobId) {
-              const { error } = await supabase.from('jobs').delete().eq('id', jobId);
-              if (!error) {
-                renderPage();
-              } else {
-                alert('Error deleting job: ' + error.message);
+              if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+                if (!error) {
+                  renderPage();
+                } else {
+                  alert('Error deleting job: ' + error.message);
+                }
               }
             } else {
               alert('Error: No job ID found for this job.');
@@ -545,176 +671,122 @@ async function renderPage() {
       }, 0);
     }
   }
-  // Application form page
+  // Apply pages already handled by renderApply module via the main routing above
   if (window.location.hash.startsWith('#apply-')) {
-    const jobId = window.location.hash.replace('#apply-', '');
-    // Fetch job info
-    const { data: job } = await supabase.from('jobs').select('*').eq('id', jobId).single();
-    document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-      <div class="homepage">
-        <header class="header">
-          <div class="container nav-container">
-            <div class="logo-section" id="home-logo-btn" style="cursor:pointer;">
-              <div class="logo-placeholder"></div>
-              <h1 class="logo">Hera Health Solutions</h1>
-            </div>
-            <nav class="nav">
-              <a href="#home" class="nav-link">Home</a>
-              <a href="#jobs" class="nav-link active">Jobs</a>
-              <a href="#why-hera" class="nav-link">Why Hera?</a>
-              <div class="nav-link account-menu" style="position:relative;">
-                <button id="account-btn" style="background:var(--primary-blue);color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:none;cursor:pointer;">
-                  <span style="font-size:1.3rem;">👤</span>
-                </button>
-                <div id="account-dropdown" style="display:none;position:absolute;right:0;top:48px;background:white;border:1px solid #e3e9f7;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);min-width:120px;z-index:10;">
-                  <button id="logout-btn" style="width:100%;background:none;border:none;padding:0.7rem 1rem;text-align:left;color:#1a237e;font-size:1rem;cursor:pointer;">Log Out</button>
-                </div>
-              </div>
-            </nav>
-          </div>
-        </header>
-        <main>
-          <section class="hero">
-            <div class="container">
-              <h2>Apply for: ${job?.title || '(Unknown Job)'}</h2>
-              <form id="application-form" style="max-width:480px;margin:2rem auto 0 auto;background:#f7f9fc;padding:2rem 1.5rem;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <label for="app-name">Full Name</label>
-                <input type="text" id="app-name" name="app-name" required style="margin-bottom:0.7rem;width:100%;padding:0.5rem;" />
-                <label for="app-email">Email</label>
-                <input type="email" id="app-email" name="app-email" required style="margin-bottom:0.7rem;width:100%;padding:0.5rem;" />
-                <label for="app-phone">Phone Number</label>
-                <input type="tel" id="app-phone" name="app-phone" required style="margin-bottom:0.7rem;width:100%;padding:0.5rem;" />
-                <label for="app-resume">Resume (PDF, DOC, DOCX)</label>
-                <input type="file" id="app-resume" name="app-resume" accept=".pdf,.doc,.docx" required style="margin-bottom:1.2rem;" />
-                <button type="submit" class="cta-button primary">Submit Application</button>
-                <div class="login-error" style="color:#c00;margin-top:0.5rem;"></div>
-              </form>
-              <button id="back-to-jobs" style="margin-top:2rem;background:#1a237e;color:#fff;border:none;padding:0.5rem 1.2rem;border-radius:6px;cursor:pointer;">Back to Jobs</button>
-            </div>
-          </section>
-        </main>
-      </div>
-    `;
-    // Logo home
-    const homeLogoBtn = document.getElementById('home-logo-btn');
-    if (homeLogoBtn) homeLogoBtn.addEventListener('click', () => { window.location.hash = '#home'; });
-    // Account menu
-    const accountBtn = document.getElementById('account-btn');
-    const accountDropdown = document.getElementById('account-dropdown');
-    if (accountBtn && accountDropdown) {
-      accountBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        accountDropdown.style.display = accountDropdown.style.display === 'block' ? 'none' : 'block';
-      });
-      document.addEventListener('click', () => { accountDropdown.style.display = 'none'; });
-      accountDropdown.addEventListener('click', (e) => { e.stopPropagation(); });
-    }
-    // Logout
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); await logoutUser(); });
-    }
-    // Back to jobs
-    const backBtn = document.getElementById('back-to-jobs');
-    if (backBtn) backBtn.addEventListener('click', () => { window.location.hash = '#jobs'; });
-    // Application form submit
-    const appForm = document.getElementById('application-form') as HTMLFormElement | null;
-    if (appForm) {
-      appForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = (document.getElementById('app-name') as HTMLInputElement).value.trim();
-        const email = (document.getElementById('app-email') as HTMLInputElement).value.trim();
-        const phone = (document.getElementById('app-phone') as HTMLInputElement).value.trim();
-        const resumeInput = document.getElementById('app-resume') as HTMLInputElement;
-        const resumeFile = resumeInput.files && resumeInput.files[0];
-        const errorDiv = appForm.querySelector('.login-error');
-        if (!name || !email || !phone || !resumeFile) {
-          if (errorDiv) errorDiv.textContent = 'Please fill in all fields and upload your resume.';
-          return;
-        }
-        try {
-          await submitApplication({ jobId, name, email, phone, resumeFile });
-          appForm.reset();
-          if (errorDiv) (errorDiv as HTMLElement).style.color = '#1a237e';
-          if (errorDiv) errorDiv.textContent = 'Application submitted!';
-        } catch (err: any) {
-          if (errorDiv) errorDiv.textContent = err.message || 'Error submitting application.';
-        }
-      });
-    }
-    return;
-  }
-  // Admin: show applicants for each job, allow status change
-  if (window.location.hash === '#admin' && sessionStorage.getItem('adminAuthed') === 'true') {
+    // Application form submission logic - add event listener after page is rendered
     setTimeout(() => {
-      const adminJobListings = document.getElementById('admin-job-listings');
-      if (adminJobListings) {
-        adminJobListings.querySelectorAll('.job-card').forEach(card => {
-          const jobId = card.getAttribute('data-job-id');
-          if (!card.querySelector('.view-applicants-btn')) {
-            const btn = document.createElement('button');
-            btn.textContent = 'View Applicants';
-            btn.className = 'cta-button secondary view-applicants-btn';
-            btn.style.marginTop = '1rem';
-            btn.addEventListener('click', async () => {
-              // Fetch applicants
-              const apps = await getJobApplications(jobId!);
-              let html = `<div style='padding:1.5rem;max-width:600px;'><h3 style='margin-bottom:1rem;'>Applicants</h3>`;
-              if (!apps.length) {
-                html += `<div style='color:#1a237e;background:#e3e9f7;padding:1rem;border-radius:8px;text-align:center;'>No applicants yet.</div>`;
-              } else {
-                html += `<ul style='list-style:none;padding:0;'>`;
-                for (const app of apps) {
-                  html += `<li style='margin-bottom:1.2rem;'><strong>${app.name}</strong> (${app.email}, ${app.phone})<br>Status: <select data-app-id='${app.id}' class='status-select' style='margin-left:0.5rem;'>
-                    <option value='submitted' ${app.status==='submitted'?'selected':''}>submitted</option>
-                    <option value='under review' ${app.status==='under review'?'selected':''}>under review</option>
-                    <option value='accepted' ${app.status==='accepted'?'selected':''}>accepted</option>
-                    <option value='denied' ${app.status==='denied'?'selected':''}>denied</option>
-                  </select><br>
-                  Resume: ${app.resume_path ? `<a href='${getResumeUrl(app.resume_path)}' target='_blank' style='color:#1a237e;text-decoration:underline;'>View Resume</a>` : 'No resume uploaded'}
-                  </li>`;
-                }
-                html += `</ul>`;
-              }
-              html += `<button id='close-applicants' style='margin-top:1.5rem;background:#1a237e;color:#fff;border:none;padding:0.5rem 1.2rem;border-radius:6px;cursor:pointer;'>Close</button></div>`;
-              // Modal
-              let modal = document.createElement('div');
-              modal.id = 'applicants-modal';
-              modal.style.position = 'fixed';
-              modal.style.top = '0';
-              modal.style.left = '0';
-              modal.style.width = '100vw';
-              modal.style.height = '100vh';
-              modal.style.background = 'rgba(0,0,0,0.18)';
-              modal.style.display = 'flex';
-              modal.style.alignItems = 'center';
-              modal.style.justifyContent = 'center';
-              modal.style.zIndex = '1000';
-              modal.innerHTML = `<div style='background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.13);'>${html}</div>`;
-              document.body.appendChild(modal);
-              document.getElementById('close-applicants')?.addEventListener('click', () => {
-                modal.remove();
-              });
-              // Status change
-              modal.querySelectorAll('.status-select').forEach(sel => {
-                sel.addEventListener('change', async () => {
-                  const appId = (sel as HTMLSelectElement).getAttribute('data-app-id');
-                  const status = (sel as HTMLSelectElement).value;
-                  if (appId) {
-                    try {
-                      await updateApplicationStatus(appId, status);
-                    } catch (err: any) {
-                      alert('Error updating status: ' + (err.message || err));
-                    }
+      const appForm = document.getElementById('application-form') as HTMLFormElement | null;
+      const backBtn = document.getElementById('back-to-jobs');
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const submitText = document.getElementById('submit-text');
+      const submitLoading = document.getElementById('submit-loading');
+      const errorDiv = document.getElementById('form-error');
+      const successDiv = document.getElementById('form-success');
+      const jobId = window.location.hash.replace('#apply-', '');
+      
+      if (backBtn) backBtn.addEventListener('click', () => { window.location.hash = '#jobs'; });
+      
+      if (appForm) {
+        appForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          // Show loading state
+          if (submitBtn) submitBtn.disabled = true;
+          if (submitText) submitText.style.display = 'none';
+          if (submitLoading) submitLoading.style.display = 'inline';
+          if (errorDiv) errorDiv.textContent = '';
+          if (successDiv) successDiv.style.display = 'none';
+          
+          try {
+            const name = (document.getElementById('app-name') as HTMLInputElement).value.trim();
+            const email = (document.getElementById('app-email') as HTMLInputElement).value.trim();
+            const phone = (document.getElementById('app-phone') as HTMLInputElement).value.trim();
+            const resumeInput = document.getElementById('app-resume') as HTMLInputElement;
+            const resumeFile = resumeInput.files && resumeInput.files[0];
+            
+            // Validation
+            if (!name || !email || !phone) {
+              throw new Error('Please fill in all required fields.');
+            }
+            
+            if (!resumeFile) {
+              throw new Error('Please upload your resume.');
+            }
+            
+            // Validate file type
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!allowedTypes.includes(resumeFile.type)) {
+              throw new Error('Please upload a PDF, DOC, or DOCX file only.');
+            }
+            
+            // Validate file size
+            if (resumeFile.size > 10485760) {
+              throw new Error('File size must be less than 10MB.');
+            }
+            
+            // Submit application
+            await submitApplication({ jobId, name, email, phone, resumeFile });
+            
+            // Show success
+            appForm.reset();
+            if (successDiv) successDiv.style.display = 'block';
+            
+            // Auto-redirect after 3 seconds
+            setTimeout(() => {
+              window.location.hash = '#jobs';
+            }, 3000);
+            
+          } catch (err: any) {
+            console.error('Application submission error:', err);
+            let errorMessage = err.message || 'Error submitting application.';
+            
+            // Handle specific error cases with helpful messages
+            if (errorMessage.includes('row-level security')) {
+              errorMessage = '🔒 Database security error: Please check the RLS troubleshooting guide or contact support.';
+            } else if (errorMessage.includes('storage') || errorMessage.includes('bucket')) {
+              errorMessage = '📁 File storage error: Please run setupResumesBucket() in console or contact support.';
+            } else if (errorMessage.includes('not logged in')) {
+              errorMessage = '🔐 Please log in first before submitting an application.';
+            }
+            
+            if (errorDiv) {
+              errorDiv.innerHTML = errorMessage;
+              errorDiv.style.color = '#e74c3c';
+              
+              // Add helpful diagnostic button for RLS errors
+              if (errorMessage.includes('security error')) {
+                const diagButton = document.createElement('button');
+                diagButton.textContent = '🔍 Run Diagnostic';
+                diagButton.style.marginTop = '0.5rem';
+                diagButton.style.padding = '0.3rem 0.8rem';
+                diagButton.style.fontSize = '0.8rem';
+                diagButton.style.background = '#3498db';
+                diagButton.style.color = 'white';
+                diagButton.style.border = 'none';
+                diagButton.style.borderRadius = '4px';
+                diagButton.style.cursor = 'pointer';
+                diagButton.onclick = () => {
+                  console.log('🔍 Running diagnostic...');
+                  if ((window as any).runFullSystemTest) {
+                    (window as any).runFullSystemTest();
+                  } else {
+                    console.log('❌ Diagnostic tools not loaded. Load admin-test.js first.');
                   }
-                });
-              });
-            });
-            card.querySelector('.job-dropdown-content')?.appendChild(btn);
+                };
+                errorDiv.appendChild(document.createElement('br'));
+                errorDiv.appendChild(diagButton);
+              }
+            }
+          } finally {
+            // Reset loading state
+            if (submitBtn) submitBtn.disabled = false;
+            if (submitText) submitText.style.display = 'inline';
+            if (submitLoading) submitLoading.style.display = 'none';
           }
         });
       }
     }, 0);
+    return;
   }
 }
 
@@ -722,6 +794,7 @@ renderPage();
 
 // --- Dev Only: Debugging ---
 (window as any).supabase = supabase; // Expose supabase to browser console for debugging
+(window as any).setupResumesBucket = setupResumesBucket; // Expose setup function for manual bucket creation
 
 // --- Navigation: Only re-render on hashchange ---
 window.onhashchange = () => {
