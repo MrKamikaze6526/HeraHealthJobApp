@@ -198,6 +198,52 @@ export async function updateApplicationStatus(appId: string, status: string): Pr
   if (error) throw new Error(error.message);
 }
 
+// Helper: Show edit job form (admin)
+function showEditJobForm(job: any): void {
+  const form = document.getElementById('job-form') as HTMLFormElement;
+  const showFormBtn = document.getElementById('show-job-form-btn') as HTMLButtonElement;
+  
+  if (!form || !showFormBtn) return;
+  
+  // Show the form
+  form.style.display = 'block';
+  showFormBtn.style.display = 'none';
+  
+  // Update form title
+  const formTitle = form.querySelector('h4');
+  if (formTitle) {
+    formTitle.textContent = 'Edit Job Opening';
+  }
+  
+  // Populate form fields with job data
+  const titleInput = document.getElementById('job-title') as HTMLInputElement;
+  const descInput = document.getElementById('job-desc') as HTMLTextAreaElement;
+  const requiredInput = document.getElementById('job-required') as HTMLTextAreaElement;
+  const recommendedInput = document.getElementById('job-recommended') as HTMLTextAreaElement;
+  const salaryInput = document.getElementById('job-salary') as HTMLInputElement;
+  const locationInput = document.getElementById('job-location') as HTMLInputElement;
+  const workTypeSelect = document.getElementById('job-work-type') as HTMLSelectElement;
+  const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+  
+  if (titleInput) titleInput.value = job.title || '';
+  if (descInput) descInput.value = job.description || '';
+  if (requiredInput) requiredInput.value = job.required || '';
+  if (recommendedInput) recommendedInput.value = job.recommended || '';
+  if (salaryInput) salaryInput.value = job.salary || '';
+  if (locationInput) locationInput.value = job.location || '';
+  if (workTypeSelect) workTypeSelect.value = job.work_type || '';
+  
+  // Update submit button text
+  if (submitBtn) {
+    submitBtn.innerHTML = '<span>💾</span> Update Job';
+    submitBtn.setAttribute('data-job-id', job.id);
+    submitBtn.setAttribute('data-editing', 'true');
+  }
+  
+  // Scroll to form
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+
 // --- Extend renderPage for applicant features ---
 async function renderPage() {
   // Check login status from Supabase session
@@ -262,7 +308,7 @@ async function renderPage() {
     mainContent = await renderApply(jobId);
   } else {
     homeActive = 'active';
-    mainContent = renderHome({ isLoggedIn });
+    mainContent = renderHome();
   }
 
   // Render the main app layout and navigation
@@ -418,18 +464,45 @@ async function renderPage() {
     const jobListings = document.getElementById('job-listings');
     const adminJobListings = document.getElementById('admin-job-listings');
     // Render jobs as dropdowns or show empty message
-    function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean) {
+    async function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean) {
       if (!jobs || jobs.length === 0) {
         container.innerHTML = `<div style="text-align:center;color:#1a237e;background:#e3e9f7;font-weight:600;margin:2rem 0;padding:1.2rem 0.5rem;border-radius:8px;">No job openings available, come back soon!</div>`;
         return;
       }
+      
+      // Get application counts for each job if in admin mode
+      let jobApplicationCounts: { [key: string]: number } = {};
+      if (isAdmin) {
+        for (const job of jobs) {
+          const jobId = job.id ?? job.ID ?? job.Id ?? job.job_id;
+          if (jobId) {
+            try {
+              const { data: applications } = await supabase
+                .from('applications')
+                .select('id')
+                .eq('job_id', jobId);
+              jobApplicationCounts[jobId] = applications?.length || 0;
+            } catch (error) {
+              console.error('Error fetching application count for job:', jobId, error);
+              jobApplicationCounts[jobId] = 0;
+            }
+          }
+        }
+      }
+      
       container.innerHTML = jobs.map((job) => {
         // Find the job's ID column
         const jobId = job.id ?? job.ID ?? job.Id ?? job.job_id;
+        const applicationCount = isAdmin ? jobApplicationCounts[jobId] || 0 : 0;
+        const applicationCountText = isAdmin ? `<span style="background:#e3e9f7;color:#072044;padding:0.3rem 0.8rem;border-radius:20px;font-size:0.85rem;font-weight:600;margin-left:0.5rem;">${applicationCount} application${applicationCount !== 1 ? 's' : ''}</span>` : '';
+        
         return `
         <div class="job-card" data-job-id="${jobId ?? ''}" style="margin-bottom:1.2rem;">
           <button class="job-dropdown-toggle" style="width:100%;text-align:left;background:var(--light-gray);border:none;padding:1rem 1.2rem;border-radius:8px;font-size:1.1rem;font-weight:600;color:var(--primary-blue);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-            <span>${job.title || '(No Title)'}</span>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;">
+              <span>${job.title || '(No Title)'}</span>
+              ${applicationCountText}
+            </div>
             <span class="dropdown-arrow" style="font-size:1.2rem;">▼</span>
           </button>
           <div class="job-dropdown-content" style="display:none;padding:1.2rem 1.2rem 0.5rem 1.2rem;background:#fff;border-radius:0 0 8px 8px;border:1px solid #e3e9f7;border-top:none;color:#1a237e;">
@@ -441,6 +514,9 @@ async function renderPage() {
               <div class="admin-job-actions" style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
                 <button class="view-applicants-btn" data-job-id="${jobId ?? ''}" data-job-title="${job.title || '(No Title)'}" style="background:var(--primary-blue);color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
                   👥 View Applications
+                </button>
+                <button class="edit-job-btn" data-job-id="${jobId ?? ''}" style="background:#28a745;color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
+                  ✏️ Edit Job
                 </button>
                 <button class="delete-job-btn" data-job-id="${jobId ?? ''}" style="background:#dc3545;color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
                   🗑️ Delete Job
@@ -481,6 +557,38 @@ async function renderPage() {
           });
         });
         
+        // Edit job logic
+        container.querySelectorAll('.edit-job-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const jobId = (btn as HTMLElement).getAttribute('data-job-id');
+            if (jobId) {
+              try {
+                // Fetch the job data from the database
+                const { data: job, error } = await supabase
+                  .from('jobs')
+                  .select('*')
+                  .eq('id', jobId)
+                  .single();
+                
+                if (error) {
+                  console.error('Error fetching job:', error);
+                  alert('Error loading job data for editing.');
+                  return;
+                }
+                
+                if (job) {
+                  showEditJobForm(job);
+                }
+              } catch (error) {
+                console.error('Error loading job data:', error);
+                alert('Error loading job data for editing.');
+              }
+            }
+          });
+        });
+        
         // Delete logic
         container.querySelectorAll('.delete-job-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -504,10 +612,10 @@ async function renderPage() {
       }
     }
     if (jobListings && hash === '#jobs') {
-      renderJobDropdowns(jobListings, jobs || [], false);
+      await renderJobDropdowns(jobListings, jobs || [], false);
     }
     if (adminJobListings && hash === '#admin') {
-      renderJobDropdowns(adminJobListings, jobs || [], true);
+      await renderJobDropdowns(adminJobListings, jobs || [], true);
     }
   }
   // Show/hide job form in admin
@@ -555,19 +663,59 @@ async function renderPage() {
         const required = (document.getElementById('job-required') as HTMLTextAreaElement).value.trim();
         const recommended = (document.getElementById('job-recommended') as HTMLTextAreaElement).value.trim();
         const salary = (document.getElementById('job-salary') as HTMLInputElement).value.trim();
+        const location = (document.getElementById('job-location') as HTMLInputElement).value.trim();
+        const workType = (document.getElementById('job-work-type') as HTMLSelectElement).value;
+        
         // Validate required fields
-        if (!title || !description || !required) {
-          alert('Please fill in all required fields (title, description, required skills).');
+        if (!title || !description || !required || !workType) {
+          alert('Please fill in all required fields (title, description, required skills, work type).');
           return;
         }
-        const { error, status, statusText } = await supabase
-          .from('jobs')
-          .insert([{ title, description, required, recommended, salary }]);
-        if (!error) {
+        
+        const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const isEditing = submitBtn.getAttribute('data-editing') === 'true';
+        const jobId = submitBtn.getAttribute('data-job-id');
+        
+        try {
+          if (isEditing && jobId) {
+            // Update existing job
+            const { error } = await supabase
+              .from('jobs')
+              .update({ title, description, required, recommended, salary, location, work_type: workType })
+              .eq('id', jobId);
+              
+            if (error) throw error;
+            alert('Job updated successfully!');
+          } else {
+            // Create new job
+            const { error } = await supabase
+              .from('jobs')
+              .insert([{ title, description, required, recommended, salary, location, work_type: workType }]);
+              
+            if (error) throw error;
+            alert('Job created successfully!');
+          }
+          
+          // Reset form and show/hide elements
           form.reset();
+          form.style.display = 'none';
+          const showFormBtn = document.getElementById('show-job-form-btn') as HTMLButtonElement;
+          if (showFormBtn) showFormBtn.style.display = 'block';
+          
+          // Reset submit button
+          submitBtn.innerHTML = '<span>🚀</span> Post Job';
+          submitBtn.removeAttribute('data-job-id');
+          submitBtn.removeAttribute('data-editing');
+          
+          // Update form title
+          const formTitle = form.querySelector('h4');
+          if (formTitle) formTitle.textContent = 'Create New Job Opening';
+          
+          // Reload the admin page
           window.location.hash = '#admin';
-        } else {
-          alert('Error posting job: ' + (error.message || JSON.stringify(error) || statusText || status));
+          
+        } catch (error: any) {
+          alert('Error saving job: ' + (error.message || JSON.stringify(error)));
         }
       });
     }

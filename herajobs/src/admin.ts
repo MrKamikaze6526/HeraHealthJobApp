@@ -66,6 +66,14 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
         <div class="applicants-list">
           <div class="applicants-header">
             <span>Total Applications: <strong>${apps.length}</strong></span>
+            <div class="status-legend">
+              <span class="legend-title">Status Legend:</span>
+              <span class="status-badge submitted">Submitted</span>
+              <span class="status-badge under-review">Under Review</span>
+              <span class="status-badge interview">Interview</span>
+              <span class="status-badge accepted">Accepted</span>
+              <span class="status-badge denied">Denied</span>
+            </div>
           </div>
       `;
       
@@ -78,14 +86,28 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
               <div class="applicant-contact">
                 <span>📧 ${app.email}</span>
                 <span>📞 ${app.phone}</span>
+                ${app.age ? `<span>👤 Age: ${app.age}</span>` : ''}
+              </div>
+              <div class="applicant-address">
+                ${app.street_address ? `<span>🏠 ${app.street_address}, ${app.city}, ${app.state}, ${app.country}</span>` : ''}
+              </div>
+              <div class="applicant-education">
+                ${app.education ? `<span>🎓 ${app.education}</span>` : ''}
+                ${app.how_heard_about_us ? `<span>📢 Heard via: ${app.how_heard_about_us}</span>` : ''}
+              </div>
+              <div class="applicant-experience">
+                ${app.work_experience ? `<strong>Experience:</strong> ${app.work_experience.substring(0, 150)}${app.work_experience.length > 150 ? '...' : ''}` : ''}
               </div>
               <div class="applicant-date">Applied: ${submittedDate}</div>
             </div>
             <div class="applicant-actions">
               <div class="status-section">
                 <label>Status:</label>
+                <div class="status-display">
+                  <span class="status-badge ${app.status ? app.status.replace(/\s+/g, '-') : 'submitted'}">${app.status || 'submitted'}</span>
+                </div>
                 <select data-app-id='${app.id}' class='status-select'>
-                  <option value='submitted' ${app.status==='submitted'?'selected':''}>Submitted</option>
+                  <option value='submitted' ${(!app.status || app.status==='submitted')?'selected':''}>Submitted</option>
                   <option value='under review' ${app.status==='under review'?'selected':''}>Under Review</option>
                   <option value='interview' ${app.status==='interview'?'selected':''}>Interview</option>
                   <option value='accepted' ${app.status==='accepted'?'selected':''}>Accepted</option>
@@ -139,6 +161,12 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
         if (appId) {
           try {
             await updateApplicationStatus(appId, status);
+            // Update the status badge
+            const statusBadge = select.closest('.status-section')?.querySelector('.status-badge');
+            if (statusBadge) {
+              statusBadge.textContent = status;
+              statusBadge.className = `status-badge ${status.replace(/\s+/g, '-')}`;
+            }
             // Show success feedback
             const card = select.closest('.applicant-card') as HTMLElement;
             if (card) {
@@ -189,37 +217,57 @@ export function renderAdmin(adminAuthed: boolean): string {
   return `
     <section class="hero admin-hero">
       <div class="container">
-        <h2>Admin Dashboard: Job Management</h2>
-        <div class="admin-stats">
-          <div class="stat-card">
-            <h4>Job Openings</h4>
-            <span id="total-jobs">Loading...</span>
-          </div>
-          <div class="stat-card">
-            <h4>Total Applications</h4>
-            <span id="total-applications">Loading...</span>
-          </div>
+        <h2>Admin Dashboard</h2>
+      </div>
+    </section>
+    <section class="admin-content">
+      <div class="container">
+        <div class="admin-section">
+          <h3>Job Management</h3>
+          <div id="admin-job-listings"></div>
+          <button id="show-job-form-btn" class="cta-button primary">
+            <span>➕</span> Add New Job
+          </button>
+          <form id="job-form" class="admin-job-form" style="display:none;">
+            <h4>Create New Job Opening</h4>
+            <div class="form-row">
+              <label for="job-title">Job Title</label>
+              <input type="text" id="job-title" placeholder="e.g. Software Engineer" required />
+            </div>
+            <div class="form-row">
+              <label for="job-desc">Job Description</label>
+              <textarea id="job-desc" placeholder="Describe the role, responsibilities, and what makes this position exciting..." required rows="4"></textarea>
+            </div>
+            <div class="form-row">
+              <label for="job-required">Required Skills/Education</label>
+              <textarea id="job-required" placeholder="List the essential qualifications, skills, and experience..." required rows="3"></textarea>
+            </div>
+            <div class="form-row">
+              <label for="job-recommended">Recommended Skills/Education</label>
+              <textarea id="job-recommended" placeholder="List preferred qualifications and nice-to-have skills..." rows="3"></textarea>
+            </div>
+            <div class="form-row">
+              <label for="job-salary">Salary Range</label>
+              <input type="text" id="job-salary" placeholder="e.g. $60,000 - $80,000" />
+            </div>
+            <div class="form-row">
+              <label for="job-location">Location</label>
+              <input type="text" id="job-location" placeholder="e.g. Boston, MA or Remote" />
+            </div>
+            <div class="form-row">
+              <label for="job-work-type">Work Type</label>
+              <select id="job-work-type" required>
+                <option value="">Select work type...</option>
+                <option value="Virtual">Virtual</option>
+                <option value="Present">Present</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+            </div>
+            <button type="submit" class="cta-button primary">
+              <span>🚀</span> Post Job
+            </button>
+          </form>
         </div>
-        <div id="admin-job-listings" style="margin-bottom:2rem;"></div>
-        <button id="show-job-form-btn" class="cta-button primary" style="margin-bottom:1.5rem;">Add New Job</button>
-        <form id="job-form" class="admin-job-form" style="display:none;">
-          <div class="form-row">
-            <input type="text" id="job-title" placeholder="Job Title" required />
-          </div>
-          <div class="form-row">
-            <textarea id="job-desc" placeholder="Job Description" required rows="4"></textarea>
-          </div>
-          <div class="form-row">
-            <textarea id="job-required" placeholder="Required Skills/Education" required rows="3"></textarea>
-          </div>
-          <div class="form-row">
-            <textarea id="job-recommended" placeholder="Recommended Skills/Education" rows="3"></textarea>
-          </div>
-          <div class="form-row">
-            <input type="text" id="job-salary" placeholder="Salary (e.g. $60,000 - $80,000)" />
-          </div>
-          <button type="submit" class="cta-button primary">Post Job</button>
-        </form>
       </div>
     </section>
   `;

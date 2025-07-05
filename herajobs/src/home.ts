@@ -1,5 +1,5 @@
 // Home page module for Hera Health Solutions job app
-export function renderHome({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function renderHome() {
   return `
     <section class="hero">
       <div class="container">
