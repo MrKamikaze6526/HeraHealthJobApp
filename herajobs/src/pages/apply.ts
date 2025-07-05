@@ -1,6 +1,6 @@
 // Application form page module
 // Exports renderApply for the application form page
-import { supabase } from './main';
+import { supabase } from '../main';
 
 export async function renderApply(jobId: string): Promise<string> {
   // Fetch job info

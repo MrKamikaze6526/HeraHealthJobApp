@@ -1,6 +1,6 @@
 // Admin page module
 // Exports renderAdmin for the admin page
-import { supabase, getJobApplications, updateApplicationStatus, getResumeUrl } from './main';
+import { supabase, getJobApplications, updateApplicationStatus, getResumeUrl } from '../main';
 
 // Helper: Download resume file
 export async function downloadResume(resumePath: string, applicantName: string): Promise<void> {

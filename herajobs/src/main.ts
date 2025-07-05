@@ -1,11 +1,11 @@
 // Import global styles
 import './style.css'
 import { createClient } from '@supabase/supabase-js';
-import { renderHome } from './home.ts';
-import { renderWhyHera } from './why-hera.ts';
-import { renderJobs } from './jobs.ts';
-import { renderAdmin } from './admin.ts';
-import { renderApply } from './apply.ts';
+import { renderHome } from './pages/home.ts';
+import { renderWhyHera } from './pages/why-hera.ts';
+import { renderJobs } from './pages/jobs.ts';
+import { renderAdmin } from './pages/admin.ts';
+import { renderApply } from './pages/apply.ts';
 
 // Import setup utilities
 import { setupResumesBucket } from './supabase-setup.ts';
@@ -551,7 +551,7 @@ async function renderPage() {
             const jobId = (btn as HTMLElement).getAttribute('data-job-id');
             const jobTitle = (btn as HTMLElement).getAttribute('data-job-title');
             if (jobId && jobTitle) {
-              const { showApplicantsModal } = await import('./admin.ts');
+              const { showApplicantsModal } = await import('./pages/admin.ts');
               await showApplicantsModal(jobId, jobTitle);
             }
           });
