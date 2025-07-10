@@ -46,6 +46,11 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
   try {
     const apps = await getJobApplications(jobId);
     
+    // Debug: Log the retrieved applications with detailed field inspection
+    console.log('Retrieved applications:', apps);
+    console.log('First application elevator_pitch field:', apps[0]?.elevator_pitch);
+    console.log('All fields of first application:', apps[0] ? Object.keys(apps[0]) : 'No applications');
+    
     let html = `
       <div class="applicants-modal-content">
         <div class="modal-header">
@@ -94,9 +99,22 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
               <div class="applicant-education">
                 ${app.education ? `<span>🎓 ${app.education}</span>` : ''}
                 ${app.how_heard_about_us ? `<span>📢 Heard via: ${app.how_heard_about_us}</span>` : ''}
+                ${app.gender ? `<span>👤 Gender: ${app.gender}</span>` : ''}
+                ${app.ethnicity ? `<span>🌍 Ethnicity: ${app.ethnicity}</span>` : ''}
               </div>
               <div class="applicant-experience">
                 ${app.work_experience ? `<strong>Experience:</strong> ${app.work_experience.substring(0, 150)}${app.work_experience.length > 150 ? '...' : ''}` : ''}
+              </div>
+              <div class="applicant-elevator-pitch">
+                <strong>Elevator Pitch:</strong> 
+                ${app.elevator_pitch !== null && app.elevator_pitch !== undefined ? 
+                  (app.elevator_pitch.trim() ? app.elevator_pitch : '<em>Empty</em>') : 
+                  '<em>Not provided (older application)</em>'}
+              </div>
+              <div class="applicant-certifications">
+                ${app.work_eligible ? `<span>✅ Work Eligible</span>` : ''}
+                ${app.terms_accepted ? `<span>✅ Terms Accepted</span>` : ''}
+                ${app.certifications ? `<span>✅ ${app.certifications}</span>` : ''}
               </div>
               <div class="applicant-date">Applied: ${submittedDate}</div>
             </div>

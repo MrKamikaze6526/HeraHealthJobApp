@@ -942,6 +942,19 @@ main {
   font-weight: 600;
 }
 
+.applicant-elevator-pitch {
+  background: #f0f9ff;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.8rem;
+  border-left: 4px solid var(--secondary-teal);
+}
+
+.applicant-elevator-pitch strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
 .applicant-date {
   font-size: 0.9rem;
   color: #64748b;

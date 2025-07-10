@@ -102,6 +102,12 @@ export async function renderApply(jobId: string): Promise<string> {
               <label for="app-experience">Work Experience <span style="color: #e74c3c;">*</span></label>
               <textarea id="app-experience" name="app-experience" required rows="4" placeholder="Describe your relevant work experience..."></textarea>
               
+              <label for="app-elevator-pitch">Elevator Pitch <span style="color: #e74c3c;">*</span></label>
+              <textarea id="app-elevator-pitch" name="app-elevator-pitch" required rows="3" placeholder="Briefly describe yourself and why you're interested in this position (max 50 words)..." maxlength="300"></textarea>
+              <div class="character-count">
+                <small id="pitch-count" style="color: #6b7280;">0/300 characters</small>
+              </div>
+              
               <label for="app-resume">Resume <span style="color: #e74c3c;">*</span></label>
               <input type="file" id="app-resume" name="app-resume" accept=".pdf,.doc,.docx" required />
               <div class="file-info">

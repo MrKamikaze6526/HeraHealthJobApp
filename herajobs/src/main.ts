@@ -7,9 +7,6 @@ import { renderJobs } from './pages/jobs.ts';
 import { renderAdmin } from './pages/admin.ts';
 import { renderApply } from './pages/apply.ts';
 
-// Import setup utilities
-import { setupResumesBucket } from './supabase-setup.ts';
-
 // Initialize Supabase client
 const supabaseUrl = 'https://fgiddweoaadwbbagywer.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnaWRkd2VvYWFkd2JiYWd5d2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4OTA4MDAsImV4cCI6MjA2NjQ2NjgwMH0.T6dOkxWChS5VVhtris1rGbL7m8VReGf2-x9Ou7Hstdg';
@@ -130,7 +127,17 @@ export function getResumeUrl(path: string): string {
 }
 
 // Helper: Submit application
-export async function submitApplication({ jobId, name, email, phone, resumeFile }: { jobId: string, name: string, email: string, phone: string, resumeFile: File }): Promise<void> {
+export async function submitApplication({ 
+  jobId, name, email, phone, age, street, city, state, country, 
+  education, experience, elevatorPitch, hearAbout, gender, ethnicity,
+  qualifications, workEligible, termsAccepted, resumeFile 
+}: { 
+  jobId: string, name: string, email: string, phone: string, age: number,
+  street: string, city: string, state: string, country: string,
+  education: string, experience: string, elevatorPitch: string, 
+  hearAbout: string, gender: string, ethnicity: string,
+  qualifications: boolean, workEligible: boolean, termsAccepted: boolean, resumeFile: File 
+}): Promise<void> {
   const user = await getCurrentUser();
   if (!user) throw new Error('You must be logged in to submit an application.');
   
@@ -145,13 +152,56 @@ export async function submitApplication({ jobId, name, email, phone, resumeFile 
   }
   
   try {
+    // Debug: Log the data being submitted
+    console.log('Submitting application with data:', {
+      job_id: jobId,
+      user_id: user.id,
+      name,
+      email,
+      phone,
+      age,
+      street_address: street,
+      city,
+      state,
+      country,
+      education,
+      work_experience: experience,
+      elevator_pitch: elevatorPitch,
+      how_heard_about_us: hearAbout,
+      gender,
+      ethnicity,
+      resume_path: resumePath,
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+    });
+    
+    console.log('Elevator pitch value specifically:', elevatorPitch);
+    console.log('Elevator pitch type:', typeof elevatorPitch);
+    console.log('Elevator pitch length:', elevatorPitch?.length);
+
     const { error } = await supabase.from('applications').insert([
       {
         job_id: jobId,
         user_id: user.id,
+        prefix: name.split(' ')[0]?.includes('.') ? name.split(' ')[0] : '',
         name,
+        suffix: '',
         email,
         phone,
+        age,
+        street_address: street,
+        city,
+        state,
+        country,
+        education,
+        work_experience: experience,
+        elevator_pitch: elevatorPitch,
+        how_heard_about_us: hearAbout,
+        gender,
+        ethnicity,
+        certifications: qualifications ? 'Meets qualifications' : '',
+        work_eligible: workEligible,
+        terms_accepted: termsAccepted,
         resume_path: resumePath,
         status: 'submitted',
         submitted_at: new Date().toISOString(),
@@ -160,6 +210,7 @@ export async function submitApplication({ jobId, name, email, phone, resumeFile 
     
     if (error) {
       console.error('Application submission error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       
       // Handle specific error cases
       if (error.message.includes('row-level security')) {
@@ -168,8 +219,28 @@ export async function submitApplication({ jobId, name, email, phone, resumeFile 
         throw new Error('You have already applied to this position.');
       } else if (error.message.includes('foreign key')) {
         throw new Error('Invalid job ID. Please refresh the page and try again.');
+      } else if (error.message.includes('column') && error.message.includes('elevator_pitch')) {
+        throw new Error('Database schema error: elevator_pitch column issue. Please contact support.');
       } else {
         throw new Error(`Application submission failed: ${error.message}`);
+      }
+    } else {
+      console.log('Application submitted successfully!');
+      
+      // Verify the insertion by querying the just-inserted record
+      const { data: insertedApp, error: queryError } = await supabase
+        .from('applications')
+        .select('id, elevator_pitch, name')
+        .eq('user_id', user.id)
+        .eq('job_id', jobId)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+        
+      if (insertedApp && insertedApp.length > 0) {
+        console.log('Verification: Just inserted application:', insertedApp[0]);
+        console.log('Verification: elevator_pitch value:', insertedApp[0].elevator_pitch);
+      } else {
+        console.warn('Could not verify insertion:', queryError);
       }
     }
   } catch (dbError: any) {
@@ -187,8 +258,20 @@ async function getUserApplications(userId: string): Promise<any[]> {
 
 // Helper: Get applications for a job (admin)
 export async function getJobApplications(jobId: string): Promise<any[]> {
+  console.log('Fetching applications for job ID:', jobId);
   const { data, error } = await supabase.from('applications').select('*').eq('job_id', jobId);
-  if (error) throw new Error(error.message);
+  
+  if (error) {
+    console.error('Error fetching applications:', error);
+    throw new Error(error.message);
+  }
+  
+  console.log('Raw data from Supabase:', data);
+  if (data && data.length > 0) {
+    console.log('Sample application fields:', Object.keys(data[0]));
+    console.log('Sample elevator_pitch value:', data[0].elevator_pitch);
+  }
+  
   return data || [];
 }
 
@@ -464,12 +547,11 @@ async function renderPage() {
     const jobListings = document.getElementById('job-listings');
     const adminJobListings = document.getElementById('admin-job-listings');
     // Render jobs as dropdowns or show empty message
-    async function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean) {
+    async function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean, isLoggedIn: boolean = false) {
       if (!jobs || jobs.length === 0) {
         container.innerHTML = `<div style="text-align:center;color:#1a237e;background:#e3e9f7;font-weight:600;margin:2rem 0;padding:1.2rem 0.5rem;border-radius:8px;">No job openings available, come back soon!</div>`;
         return;
       }
-      
       // Get application counts for each job if in admin mode
       let jobApplicationCounts: { [key: string]: number } = {};
       if (isAdmin) {
@@ -489,13 +571,14 @@ async function renderPage() {
           }
         }
       }
-      
       container.innerHTML = jobs.map((job) => {
         // Find the job's ID column
         const jobId = job.id ?? job.ID ?? job.Id ?? job.job_id;
         const applicationCount = isAdmin ? jobApplicationCounts[jobId] || 0 : 0;
         const applicationCountText = isAdmin ? `<span style="background:#e3e9f7;color:#072044;padding:0.3rem 0.8rem;border-radius:20px;font-size:0.85rem;font-weight:600;margin-left:0.5rem;">${applicationCount} application${applicationCount !== 1 ? 's' : ''}</span>` : '';
-        
+        // Render job type and location as plain text
+        const jobType = job.work_type || job.workType || job.type || '';
+        const jobLocation = job.location || '';
         return `
         <div class="job-card" data-job-id="${jobId ?? ''}" style="margin-bottom:1.2rem;">
           <button class="job-dropdown-toggle" style="width:100%;text-align:left;background:var(--light-gray);border:none;padding:1rem 1.2rem;border-radius:8px;font-size:1.1rem;font-weight:600;color:var(--primary-blue);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
@@ -506,6 +589,10 @@ async function renderPage() {
             <span class="dropdown-arrow" style="font-size:1.2rem;">▼</span>
           </button>
           <div class="job-dropdown-content" style="display:none;padding:1.2rem 1.2rem 0.5rem 1.2rem;background:#fff;border-radius:0 0 8px 8px;border:1px solid #e3e9f7;border-top:none;color:#1a237e;">
+            <div style="margin-bottom:0.7rem;font-size:1.05rem;color:#1a237e;font-weight:500;">
+              ${jobType ? `<span style='margin-right:1.5rem;'><strong>Type:</strong> ${jobType}</span>` : ''}
+              ${jobLocation ? `<span><strong>Location:</strong> ${jobLocation}</span>` : ''}
+            </div>
             <p><strong>Description:</strong> ${job.description || '-'}</p>
             <p><strong>Required Skills/Education:</strong> ${job.required || '-'}</p>
             <p><strong>Recommended Skills/Education:</strong> ${job.recommended || '-'}</p>
@@ -520,6 +607,12 @@ async function renderPage() {
                 </button>
                 <button class="delete-job-btn" data-job-id="${jobId ?? ''}" style="background:#dc3545;color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
                   🗑️ Delete Job
+                </button>
+              </div>
+            ` : isLoggedIn ? `
+              <div class="job-actions" style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;justify-content:center;">
+                <button class="apply-job-btn" data-job-id="${jobId ?? ''}" style="background:var(--primary-blue);color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
+                  📝 Apply for this Position
                 </button>
               </div>
             ` : ''}
@@ -610,12 +703,28 @@ async function renderPage() {
           });
         });
       }
+      
+      // Apply button logic for logged-in users
+      if (isLoggedIn && !isAdmin) {
+        container.querySelectorAll('.apply-job-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const jobId = (btn as HTMLElement).getAttribute('data-job-id');
+            if (jobId) {
+              window.location.hash = `#apply-${jobId}`;
+            } else {
+              alert('Error: No job ID found for this job.');
+            }
+          });
+        });
+      }
     }
     if (jobListings && hash === '#jobs') {
-      await renderJobDropdowns(jobListings, jobs || [], false);
+      await renderJobDropdowns(jobListings, jobs || [], false, isLoggedIn);
     }
     if (adminJobListings && hash === '#admin') {
-      await renderJobDropdowns(adminJobListings, jobs || [], true);
+      await renderJobDropdowns(adminJobListings, jobs || [], true, isLoggedIn);
     }
   }
   // Show/hide job form in admin
@@ -721,6 +830,125 @@ async function renderPage() {
     }
   }
 
+  // Handle application form submission
+  if (window.location.hash.startsWith('#apply-')) {
+    const form = document.getElementById('application-form') as HTMLFormElement | null;
+    if (form) {
+      // Add character counter for elevator pitch
+      const elevatorPitchTextarea = document.getElementById('app-elevator-pitch') as HTMLTextAreaElement;
+      const pitchCounter = document.getElementById('pitch-count');
+      if (elevatorPitchTextarea && pitchCounter) {
+        elevatorPitchTextarea.addEventListener('input', () => {
+          const count = elevatorPitchTextarea.value.length;
+          pitchCounter.textContent = `${count}/300 characters`;
+          pitchCounter.style.color = count > 250 ? '#e74c3c' : '#6b7280';
+        });
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+        const submitText = document.getElementById('submit-text') as HTMLElement;
+        const submitLoading = document.getElementById('submit-loading') as HTMLElement;
+        const errorDiv = document.getElementById('form-error') as HTMLElement;
+        const successDiv = document.getElementById('form-success') as HTMLElement;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.style.display = 'none';
+        submitLoading.style.display = 'inline';
+        errorDiv.textContent = '';
+        successDiv.style.display = 'none';
+        
+        try {
+          // Get form data
+          const prefix = (document.getElementById('app-prefix') as HTMLSelectElement).value;
+          const name = (document.getElementById('app-name') as HTMLInputElement).value;
+          const suffix = (document.getElementById('app-suffix') as HTMLSelectElement).value;
+          const fullName = `${prefix} ${name} ${suffix}`.trim();
+          const email = (document.getElementById('app-email') as HTMLInputElement).value;
+          const phone = (document.getElementById('app-phone') as HTMLInputElement).value;
+          const age = parseInt((document.getElementById('app-age') as HTMLInputElement).value, 10);
+          const street = (document.getElementById('app-street') as HTMLInputElement).value;
+          const city = (document.getElementById('app-city') as HTMLInputElement).value;
+          const state = (document.getElementById('app-state') as HTMLInputElement).value;
+          const country = (document.getElementById('app-country') as HTMLSelectElement).value;
+          const education = (document.getElementById('app-education') as HTMLSelectElement).value;
+          const experience = (document.getElementById('app-experience') as HTMLTextAreaElement).value;
+          const elevatorPitch = (document.getElementById('app-elevator-pitch') as HTMLTextAreaElement).value;
+          const hearAbout = (document.getElementById('app-hear-about') as HTMLSelectElement).value;
+          
+          // Debug: Check if elevator pitch element exists and has value
+          const elevatorPitchElement = document.getElementById('app-elevator-pitch') as HTMLTextAreaElement;
+          console.log('Elevator pitch element found:', !!elevatorPitchElement);
+          console.log('Elevator pitch raw value:', elevatorPitchElement?.value);
+          console.log('Elevator pitch processed value:', elevatorPitch);
+          const gender = (document.getElementById('app-gender') as HTMLSelectElement).value;
+          const ethnicity = (document.getElementById('app-ethnicity') as HTMLSelectElement).value;
+          const qualifications = (document.getElementById('app-qualifications') as HTMLInputElement).checked;
+          const workEligible = (document.getElementById('app-work-eligibility') as HTMLInputElement).checked;
+          const termsAccepted = (document.getElementById('app-terms') as HTMLInputElement).checked;
+          const resumeFile = (document.getElementById('app-resume') as HTMLInputElement).files?.[0];
+          
+          if (!resumeFile) {
+            throw new Error('Please select a resume file.');
+          }
+          
+          const jobId = window.location.hash.replace('#apply-', '');
+          
+          // Submit application
+          await submitApplication({
+            jobId,
+            name: fullName,
+            email,
+            phone,
+            age,
+            street,
+            city,
+            state,
+            country,
+            education,
+            experience,
+            elevatorPitch,
+            hearAbout,
+            gender,
+            ethnicity,
+            qualifications,
+            workEligible,
+            termsAccepted,
+            resumeFile
+          });
+          
+          // Show success
+          successDiv.style.display = 'block';
+          form.reset();
+          
+          // Redirect to jobs page after a delay
+          setTimeout(() => {
+            window.location.hash = '#jobs';
+          }, 2000);
+          
+        } catch (error: any) {
+          errorDiv.textContent = error.message || 'An error occurred while submitting your application.';
+        } finally {
+          // Reset button state
+          submitBtn.disabled = false;
+          submitText.style.display = 'inline';
+          submitLoading.style.display = 'none';
+        }
+      });
+      
+      // Handle back to jobs button
+      const backBtn = document.getElementById('back-to-jobs');
+      if (backBtn) {
+        backBtn.addEventListener('click', () => {
+          window.location.hash = '#jobs';
+        });
+      }
+    }
+  }
+
   // Add logout button handler if logged in
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
@@ -748,10 +976,15 @@ async function renderPage() {
       accountDropdown.insertBefore(appStatusBtn, accountDropdown.firstChild);
       appStatusBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+        // Remove any existing modal before creating a new one
+        const oldModal = document.getElementById('app-status-modal');
+        if (oldModal) oldModal.remove();
         // Show application status modal/page
         const user = await getCurrentUser();
         if (!user) return;
-        let html = `<div style='padding:1.5rem;max-width:500px;'><h3 style='margin-bottom:1rem;'>Your Applications</h3>`;
+        let html = `<div style='padding:2.2rem 2.2rem 1.2rem 2.2rem;max-width:600px;min-width:340px;'>` +
+          `<h2 style='margin-bottom:1.2rem;text-align:center;font-size:2rem;font-weight:700;color:#1a237e;'>Your Applications</h2>` +
+          `<div style='height:3px;width:100%;background:linear-gradient(90deg,#3b82f6 60%,#fff 100%);margin-bottom:2rem;border-radius:2px;'></div>`;
         let apps: any[] = [];
         let appsError = false;
         try {
@@ -764,18 +997,38 @@ async function renderPage() {
         } else if (!apps.length) {
           html += `<div style='color:#1a237e;background:#e3e9f7;padding:1.2rem 1rem;border-radius:8px;text-align:center;font-weight:600;'>No jobs applied to yet! Why not change that?</div>`;
         } else {
-          html += `<ul style='list-style:none;padding:0;'>`;
+          html += `<div style='display:flex;flex-direction:column;gap:1.2rem;'>`;
           for (const app of apps) {
             let jobTitle = '';
             try {
               const { data: job } = await supabase.from('jobs').select('title').eq('id', app.job_id).single();
               jobTitle = job?.title || '(Unknown Job)';
             } catch { jobTitle = '(Unknown Job)'; }
-            html += `<li style='margin-bottom:1.2rem;'><strong>${jobTitle}</strong><br>Status: <span style='font-weight:600;'>${app.status || 'submitted'}</span></li>`;
+            // Status badge color
+            let badgeColor = '#e0e0e0', badgeText = '#222', badgeBorder = '#bbb', boxBorder = '#b5d0ff', boxBg = '#f6f9ff';
+            if ((app.status || '').toLowerCase() === 'accepted') {
+              badgeColor = '#7fffd4'; badgeText = '#006644'; badgeBorder = '#3be6a0';
+              boxBorder = '#3be6a0'; boxBg = '#eafff6';
+            } else if ((app.status || '').toLowerCase() === 'submitted') {
+              badgeColor = '#ffe6a0'; badgeText = '#b97a00'; badgeBorder = '#ffc43a';
+              boxBorder = '#ffc43a'; boxBg = '#fffbe6';
+            } else if ((app.status || '').toLowerCase() === 'rejected') {
+              badgeColor = '#ffd6d6'; badgeText = '#c00'; badgeBorder = '#ff7a7a';
+              boxBorder = '#ff7a7a'; boxBg = '#fff0f0';
+            }
+            html += `
+              <div style="background:${boxBg};border:2.5px solid ${boxBorder};border-radius:14px;padding:1.1rem 1.5rem;box-shadow:0 2px 8px rgba(60,80,180,0.07);display:flex;align-items:center;gap:1.2rem;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:0.7rem;font-size:1.18rem;font-weight:600;color:#1a237e;">
+                  <span>${jobTitle}</span>
+                  <span style="font-weight:400;font-size:1.05rem;color:#6b7280;">- Status:</span>
+                </div>
+                <span style="display:inline-block;padding:0.5rem 1.5rem;font-size:1.08rem;font-weight:700;background:${badgeColor};color:${badgeText};border:2px solid ${badgeBorder};border-radius:24px;letter-spacing:1px;box-shadow:0 1px 4px rgba(0,0,0,0.04);text-transform:uppercase;">${(app.status || 'SUBMITTED').toUpperCase()}</span>
+              </div>
+            `;
           }
-          html += `</ul>`;
+          html += `</div>`;
         }
-        html += `<button id='close-app-status' style='margin-top:1.5rem;background:#1a237e;color:#fff;border:none;padding:0.5rem 1.2rem;border-radius:6px;cursor:pointer;'>Close</button></div>`;
+        html += `<div style='display:flex;justify-content:center;'><button id='close-app-status' style='margin-top:2.2rem;background:#1a237e;color:#fff;border:none;padding:0.7rem 2.2rem;border-radius:8px;cursor:pointer;font-size:1.1rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.08);'>Close</button></div></div>`;
         // Modal
         let modal = document.createElement('div');
         modal.id = 'app-status-modal';
@@ -789,164 +1042,100 @@ async function renderPage() {
         modal.style.alignItems = 'center';
         modal.style.justifyContent = 'center';
         modal.style.zIndex = '1000';
-        modal.innerHTML = `<div style='background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.13);'>${html}</div>`;
+        modal.innerHTML = `<div style='background:#fff;border-radius:18px;box-shadow:0 2px 24px rgba(0,0,0,0.13);'>${html}</div>`;
         document.body.appendChild(modal);
-        document.getElementById('close-app-status')?.addEventListener('click', () => {
-          modal.remove();
-        });
+        // Close button handler
+        const closeBtn = document.getElementById('close-app-status');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            modal.remove();
+          });
+        }
       });
     }
   }
-  // Jobs page: add Apply button for each job
-  if (isLoggedIn && (window.location.hash === '#jobs')) {
-    const jobListings = document.getElementById('job-listings');
-    if (jobListings) {
-      // Wait for jobs to render
-      setTimeout(() => {
-        jobListings.querySelectorAll('.job-card').forEach(card => {
-          const jobId = card.getAttribute('data-job-id');
-          if (!card.querySelector('.apply-btn')) {
-            const btn = document.createElement('button');
-            btn.textContent = 'Apply';
-            btn.className = 'cta-button primary apply-btn';
-            btn.style.marginTop = '1rem';
-            btn.addEventListener('click', () => {
-              window.location.hash = `#apply-${jobId}`;
-            });
-            card.querySelector('.job-dropdown-content')?.appendChild(btn);
-          }
-        });
-      }, 0);
-    }
-  }
-  // Apply pages already handled by renderApply module via the main routing above
-  if (window.location.hash.startsWith('#apply-')) {
-    // Application form submission logic - add event listener after page is rendered
-    setTimeout(() => {
-      const appForm = document.getElementById('application-form') as HTMLFormElement | null;
-      const backBtn = document.getElementById('back-to-jobs');
-      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-      const submitText = document.getElementById('submit-text');
-      const submitLoading = document.getElementById('submit-loading');
-      const errorDiv = document.getElementById('form-error');
-      const successDiv = document.getElementById('form-success');
-      const jobId = window.location.hash.replace('#apply-', '');
-      
-      if (backBtn) backBtn.addEventListener('click', () => { window.location.hash = '#jobs'; });
-      
-      if (appForm) {
-        appForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          
-          // Show loading state
-          if (submitBtn) submitBtn.disabled = true;
-          if (submitText) submitText.style.display = 'none';
-          if (submitLoading) submitLoading.style.display = 'inline';
-          if (errorDiv) errorDiv.textContent = '';
-          if (successDiv) successDiv.style.display = 'none';
-          
-          try {
-            const name = (document.getElementById('app-name') as HTMLInputElement).value.trim();
-            const email = (document.getElementById('app-email') as HTMLInputElement).value.trim();
-            const phone = (document.getElementById('app-phone') as HTMLInputElement).value.trim();
-            const resumeInput = document.getElementById('app-resume') as HTMLInputElement;
-            const resumeFile = resumeInput.files && resumeInput.files[0];
-            
-            // Validation
-            if (!name || !email || !phone) {
-              throw new Error('Please fill in all required fields.');
-            }
-            
-            if (!resumeFile) {
-              throw new Error('Please upload your resume.');
-            }
-            
-            // Validate file type
-            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            if (!allowedTypes.includes(resumeFile.type)) {
-              throw new Error('Please upload a PDF, DOC, or DOCX file only.');
-            }
-            
-            // Validate file size
-            if (resumeFile.size > 10485760) {
-              throw new Error('File size must be less than 10MB.');
-            }
-            
-            // Submit application
-            await submitApplication({ jobId, name, email, phone, resumeFile });
-            
-            // Show success
-            appForm.reset();
-            if (successDiv) successDiv.style.display = 'block';
-            
-            // Auto-redirect after 3 seconds
-            setTimeout(() => {
-              window.location.hash = '#jobs';
-            }, 3000);
-            
-          } catch (err: any) {
-            console.error('Application submission error:', err);
-            let errorMessage = err.message || 'Error submitting application.';
-            
-            // Handle specific error cases with helpful messages
-            if (errorMessage.includes('row-level security')) {
-              errorMessage = '🔒 Database security error: Please check the RLS troubleshooting guide or contact support.';
-            } else if (errorMessage.includes('storage') || errorMessage.includes('bucket')) {
-              errorMessage = '📁 File storage error: Please run setupResumesBucket() in console or contact support.';
-            } else if (errorMessage.includes('not logged in')) {
-              errorMessage = '🔐 Please log in first before submitting an application.';
-            }
-            
-            if (errorDiv) {
-              errorDiv.innerHTML = errorMessage;
-              errorDiv.style.color = '#e74c3c';
-              
-              // Add helpful diagnostic button for RLS errors
-              if (errorMessage.includes('security error')) {
-                const diagButton = document.createElement('button');
-                diagButton.textContent = '🔍 Run Diagnostic';
-                diagButton.style.marginTop = '0.5rem';
-                diagButton.style.padding = '0.3rem 0.8rem';
-                diagButton.style.fontSize = '0.8rem';
-                diagButton.style.background = '#3498db';
-                diagButton.style.color = 'white';
-                diagButton.style.border = 'none';
-                diagButton.style.borderRadius = '4px';
-                diagButton.style.cursor = 'pointer';
-                diagButton.onclick = () => {
-                  console.log('🔍 Running diagnostic...');
-                  if ((window as any).runFullSystemTest) {
-                    (window as any).runFullSystemTest();
-                  } else {
-                    console.log('❌ Diagnostic tools not loaded. Load admin-test.js first.');
-                  }
-                };
-                errorDiv.appendChild(document.createElement('br'));
-                errorDiv.appendChild(diagButton);
-              }
-            }
-          } finally {
-            // Reset loading state
-            if (submitBtn) submitBtn.disabled = false;
-            if (submitText) submitText.style.display = 'inline';
-            if (submitLoading) submitLoading.style.display = 'none';
-          }
-        });
-      }
-    }, 0);
-    return;
-  }
 }
 
+// Initial render
 renderPage();
 
-// --- Dev Only: Debugging ---
-(window as any).supabase = supabase; // Expose supabase to browser console for debugging
-(window as any).setupResumesBucket = setupResumesBucket; // Expose setup function for manual bucket creation
-
-// --- Navigation: Only re-render on hashchange ---
-window.onhashchange = () => {
+// Listen for hash changes to re-render the page
+window.addEventListener('hashchange', () => {
   renderPage();
-};
-// Remove all direct renderPage() calls after navigation changes (e.g., after logout, after login/register, after admin password form)
-// Instead, just change window.location.hash and let the hashchange event trigger renderPage
+});
+
+// --- Debugging and Testing Helpers ---
+// Uncomment this section to enable debug logging for Supabase responses
+/*
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth event:', event);
+  console.log('Session data:', session);
+});
+
+supabase.from('jobs').on('*', payload => {
+  console.log('Jobs table change:', payload);
+}).subscribe();
+
+supabase.from('applications').on('*', payload => {
+  console.log('Applications table change:', payload);
+}).subscribe();
+*/
+
+// For testing: Auto-fill resume upload and application submit (remove in production)
+/*
+document.getElementById('test-upload-resume')?.addEventListener('click', async () => {
+  const fileInput = document.getElementById('resume-file') as HTMLInputElement;
+  const userId = (await getCurrentUser())?.id;
+  const jobId = 'example-job-id'; // Replace with a valid job ID for testing
+  if (fileInput && userId) {
+    const file = fileInput.files?.[0];
+    if (file) {
+      try {
+        const path = await uploadResume(file, userId, jobId);
+        alert('Resume uploaded to: ' + path);
+      } catch (error) {
+        alert('Error uploading resume: ' + error.message);
+      }
+    } else {
+      alert('No file selected.');
+    }
+  } else {
+    alert('User not logged in or invalid job ID.');
+  }
+});
+
+document.getElementById('test-submit-app')?.addEventListener('click', async () => {
+  const user = await getCurrentUser();
+  const jobId = 'example-job-id'; // Replace with a valid job ID for testing
+  if (user) {
+    try {
+      await submitApplication({
+        jobId,
+        name: user.email.split('@')[0],
+        email: user.email,
+        phone: '123-456-7890',
+        age: 25,
+        street: '123 Test St',
+        city: 'Test City',
+        state: 'TS',
+        country: 'United States',
+        education: "Bachelor's Degree",
+        experience: 'Test work experience',
+        elevatorPitch: 'Test elevator pitch',
+        hearAbout: 'Company Website',
+        gender: 'Male',
+        ethnicity: 'Other',
+        qualifications: true,
+        workEligible: true,
+        termsAccepted: true,
+        resumeFile: null // Set a valid File object here if needed
+      });
+      alert('Application submitted (check console for details)');
+    } catch (error) {
+      alert('Error submitting application: ' + error.message);
+    }
+  } else {
+    alert('User not logged in.');
+  }
+});
+*/
