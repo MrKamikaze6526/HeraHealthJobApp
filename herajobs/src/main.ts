@@ -128,11 +128,11 @@ export function getResumeUrl(path: string): string {
 
 // Helper: Submit application
 export async function submitApplication({ 
-  jobId, name, email, phone, age, street, city, state, country, 
+  jobId, name, email, phone, dob, street, city, state, country, 
   education, experience, elevatorPitch, hearAbout, gender, ethnicity,
   qualifications, workEligible, termsAccepted, resumeFile 
 }: { 
-  jobId: string, name: string, email: string, phone: string, age: number,
+  jobId: string, name: string, email: string, phone: string, dob: string,
   street: string, city: string, state: string, country: string,
   education: string, experience: string, elevatorPitch: string, 
   hearAbout: string, gender: string, ethnicity: string,
@@ -159,7 +159,7 @@ export async function submitApplication({
       name,
       email,
       phone,
-      age,
+      dob,
       street_address: street,
       city,
       state,
@@ -188,7 +188,7 @@ export async function submitApplication({
         suffix: '',
         email,
         phone,
-        age,
+        dob,
         street_address: street,
         city,
         state,
@@ -400,8 +400,8 @@ async function renderPage() {
       <header class="header">
         <div class="container nav-container">
           <div class="logo-section" id="home-logo-btn" style="cursor:pointer;">
-            <div class="logo-placeholder"></div>
-            <h1 class="logo">Hera Health Solutions</h1>
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqhB2hDCOiucaTrzSVUbpxvae5rxuuUamN6Q&s" alt="Hera Health Solutions" class="logo-image" />
+            <h1 class="logo">HERA HEALTH SOLUTIONS</h1>
           </div>
           <nav class="nav">
             <a href="#home" class="nav-link ${homeActive}">Home</a>
@@ -869,7 +869,7 @@ async function renderPage() {
           const fullName = `${prefix} ${name} ${suffix}`.trim();
           const email = (document.getElementById('app-email') as HTMLInputElement).value;
           const phone = (document.getElementById('app-phone') as HTMLInputElement).value;
-          const age = parseInt((document.getElementById('app-age') as HTMLInputElement).value, 10);
+          const dob = (document.getElementById('app-dob') as HTMLInputElement).value;
           const street = (document.getElementById('app-street') as HTMLInputElement).value;
           const city = (document.getElementById('app-city') as HTMLInputElement).value;
           const state = (document.getElementById('app-state') as HTMLInputElement).value;
@@ -903,7 +903,7 @@ async function renderPage() {
             name: fullName,
             email,
             phone,
-            age,
+            dob,
             street,
             city,
             state,
@@ -1139,3 +1139,8 @@ document.getElementById('test-submit-app')?.addEventListener('click', async () =
   }
 });
 */
+
+// ...existing code...
+// ...existing code...
+
+// ...existing code...

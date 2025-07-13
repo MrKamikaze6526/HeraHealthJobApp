@@ -59,23 +59,7 @@ body {
   min-height: 100vh;
 }
 
-/* Logo and branding styles */
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-
-  color: var(--primary-blue);
-  font-size: 1.8rem;
-  font-weight: bold;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
-}
+/* Logo and branding styles removed - using header logo styles instead */
 
 /* Card and utility classes */
 .card {
@@ -137,31 +121,34 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  width: fit-content;
 }
 
-.logo-placeholder {
-  width: 40px;
-  height: 40px;
-  background: var(--primary-blue);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
-  font-weight: bold;
-  font-size: 1.3rem;
-  letter-spacing: 1px;
+.logo-section:hover {
+  background-color: rgba(114, 159, 207, 0.1);
 }
-.logo-placeholder::after {
-  content: "H";
+
+.logo-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: contain;
 }
 
 .logo {
-  font-size: 1.35rem;
+  font-size: 1.8rem;
   margin: 0;
-  color: var(--primary-blue);
+  color: #1a365d !important;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: none;
+  text-shadow: none;
+  line-height: 1;
 }
 
 .nav {
@@ -1673,3 +1660,7 @@ main {
   content: '✨';
   font-size: 1.1rem;
 }
+
+/* ...existing code... */
+
+/* ...existing code... */

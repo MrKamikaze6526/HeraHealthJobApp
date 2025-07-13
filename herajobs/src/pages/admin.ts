@@ -46,12 +46,21 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
   try {
     const apps = await getJobApplications(jobId);
     
-    // Debug: Log the retrieved applications with detailed field inspection
-    console.log('Retrieved applications:', apps);
-    console.log('First application elevator_pitch field:', apps[0]?.elevator_pitch);
-    console.log('All fields of first application:', apps[0] ? Object.keys(apps[0]) : 'No applications');
-    
     let html = `
+      <style>
+        .modal-overlay {
+          background: rgba(17, 24, 39, 0.55) !important;
+        }
+        .applicants-modal-content {
+          border-top: none !important;
+          box-shadow: none !important;
+          background: #f8fafc !important;
+        }
+        .applicants-modal-content .modal-header {
+          border-top: none !important;
+          box-shadow: none !important;
+        }
+      </style>
       <div class="applicants-modal-content">
         <div class="modal-header">
           <h3>Applications for: ${jobTitle}</h3>
@@ -91,7 +100,7 @@ export async function showApplicantsModal(jobId: string, jobTitle: string): Prom
               <div class="applicant-contact">
                 <span>📧 ${app.email}</span>
                 <span>📞 ${app.phone}</span>
-                ${app.age ? `<span>👤 Age: ${app.age}</span>` : ''}
+                ${app.dob ? `<span>🎂 DOB: ${(() => { const d = new Date(app.dob); return d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth()+1).toString().padStart(2, '0') + '/' + d.getFullYear(); })()}</span>` : ''}
               </div>
               <div class="applicant-address">
                 ${app.street_address ? `<span>🏠 ${app.street_address}, ${app.city}, ${app.state}, ${app.country}</span>` : ''}

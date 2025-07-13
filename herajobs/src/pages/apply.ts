@@ -50,8 +50,9 @@ export async function renderApply(jobId: string): Promise<string> {
               <label for="app-phone">Phone Number <span style="color: #e74c3c;">*</span></label>
               <input type="tel" id="app-phone" name="app-phone" required placeholder="(555) 123-4567" />
               
-              <label for="app-age">Age <span style="color: #e74c3c;">*</span></label>
-              <input type="number" id="app-age" name="app-age" required min="16" max="100" placeholder="25" />
+              <label for="app-dob">Date of Birth <span style="color: #e74c3c;">*</span></label>
+              <input type="date" id="app-dob" name="app-dob" required max="{{maxDate}}" placeholder="YYYY-MM-DD" style="width:100%;max-width:340px;min-width:180px;box-sizing:border-box;padding:0.9rem 1.2rem;border-radius:8px;border:2px solid #cfd8dc;font-size:1.05rem;" />
+              <div style="font-size:0.95rem;color:#6b7280;margin-bottom:0.5rem;">Format: DD-MM-YYYY</div>
             </div>
             
             <div class="form-section">
