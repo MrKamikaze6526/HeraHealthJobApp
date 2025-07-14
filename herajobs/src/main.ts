@@ -339,7 +339,7 @@ async function renderPage() {
 
   if (hash === '#jobs') {
     jobsActive = 'active';
-    mainContent = await renderJobs(isLoggedIn);
+    mainContent = await renderJobs();
   } else if (hash === '#why-hera') {
     whyActive = 'active';
     mainContent = renderWhyHera();
@@ -387,6 +387,11 @@ async function renderPage() {
     const adminAuthed = sessionStorage.getItem('adminAuthed') === 'true';
     mainContent = renderAdmin(adminAuthed);
   } else if (window.location.hash.startsWith('#apply-')) {
+    if (!isLoggedIn) {
+      // Redirect to login if not authenticated
+      window.location.hash = '#login';
+      return;
+    }
     const jobId = window.location.hash.replace('#apply-', '');
     mainContent = await renderApply(jobId);
   } else {
@@ -520,8 +525,8 @@ async function renderPage() {
     }
   }
 
-  // Load job listings for logged-in users and admin
-  if ((isLoggedIn && (hash === '#jobs')) || (hash === '#admin' && sessionStorage.getItem('adminAuthed') === 'true')) {
+  // Load job listings for jobs page (public access) and admin
+  if ((hash === '#jobs') || (hash === '#admin' && sessionStorage.getItem('adminAuthed') === 'true')) {
     const { data: jobs, error } = await supabase
       .from('jobs')
       .select('*');
@@ -580,7 +585,7 @@ async function renderPage() {
         const jobType = job.work_type || job.workType || job.type || '';
         const jobLocation = job.location || '';
         return `
-        <div class="job-card" data-job-id="${jobId ?? ''}" style="margin-bottom:1.2rem;">
+        <div class="job-card" data-job-id="${jobId ?? ''}" style="margin-bottom:2rem;">
           <button class="job-dropdown-toggle" style="width:100%;text-align:left;background:var(--light-gray);border:none;padding:1rem 1.2rem;border-radius:8px;font-size:1.1rem;font-weight:600;color:var(--primary-blue);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
             <div style="display:flex;align-items:center;flex-wrap:wrap;">
               <span>${job.title || '(No Title)'}</span>
@@ -596,7 +601,7 @@ async function renderPage() {
             <p><strong>Description:</strong> ${job.description || '-'}</p>
             <p><strong>Required Skills/Education:</strong> ${job.required || '-'}</p>
             <p><strong>Recommended Skills/Education:</strong> ${job.recommended || '-'}</p>
-            <p><strong>Salary:</strong> ${job.salary || '-'}</p>
+            <p><strong>Salary Range:</strong> ${job.salary || '-'}</p>
             ${isAdmin ? `
               <div class="admin-job-actions" style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
                 <button class="view-applicants-btn" data-job-id="${jobId ?? ''}" data-job-title="${job.title || '(No Title)'}" style="background:var(--primary-blue);color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
@@ -615,7 +620,13 @@ async function renderPage() {
                   📝 Apply for this Position
                 </button>
               </div>
-            ` : ''}
+            ` : `
+              <div class="job-actions" style="margin-top:1rem;display:flex;gap:0.8rem;flex-wrap:wrap;justify-content:center;">
+                <button class="login-to-apply-btn" style="background:#1976d2;color:#fff;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">
+                  🔐 Log In to Apply
+                </button>
+              </div>
+            `}
           </div>
         </div>
         `;
@@ -716,6 +727,17 @@ async function renderPage() {
             } else {
               alert('Error: No job ID found for this job.');
             }
+          });
+        });
+      }
+      
+      // Log in to apply button logic for non-authenticated users
+      if (!isLoggedIn && !isAdmin) {
+        container.querySelectorAll('.login-to-apply-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.hash = '#login';
           });
         });
       }
