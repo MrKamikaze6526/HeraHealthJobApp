@@ -8,8 +8,13 @@ import { renderAdmin } from './pages/admin.ts';
 import { renderApply } from './pages/apply.ts';
 
 // Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fgiddweoaadwbbagywer.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnaWRkd2VvYWFkd2JiYWd5d2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4OTA4MDAsImV4cCI6MjA2NjQ2NjgwMH0.T6dOkxWChS5VVhtris1rGbL7m8VReGf2-x9Ou7Hstdg';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase configuration. Please check your environment variables.');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper: Register user in Supabase
@@ -770,7 +775,8 @@ async function renderPage() {
         adminForm.addEventListener('submit', (e) => {
           e.preventDefault();
           const pw = (document.getElementById('admin-password') as HTMLInputElement).value;
-          if (pw === 'LADDER2025') {
+          const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'LADDER2025';
+          if (pw === adminPassword) {
             sessionStorage.setItem('adminAuthed', 'true');
             // Instead of changing hash, re-render directly to avoid hashchange race
             renderPage();

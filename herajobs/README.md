@@ -4,6 +4,8 @@ A modern job application tracking system built with Vite, TypeScript, and Supaba
 
 ## 🔒 Security Setup
 
+⚠️ **IMPORTANT**: Never commit sensitive credentials to your repository!
+
 ### Environment Variables
 
 This project uses environment variables to keep sensitive information secure. 
@@ -22,13 +24,23 @@ This project uses environment variables to keep sensitive information secure.
 
 3. **Never commit `.env` to git** - it's already in `.gitignore`
 
+### Security Features
+
+- ✅ Environment variable configuration
+- ✅ Content Security Policy headers
+- ✅ XSS protection
+- ✅ CSRF protection through Supabase
+- ✅ Admin password protection
+- ✅ Secure file upload validation
+
 ### For Deployment
 
 When deploying to Render, Vercel, or other platforms:
 
 1. Set environment variables in your hosting platform's dashboard
 2. Use the same variable names as in `.env.example`
-3. The app will automatically use these values
+3. Use strong, unique passwords for production
+4. Consider implementing rate limiting in Supabase
 
 ## 🚀 Development
 
