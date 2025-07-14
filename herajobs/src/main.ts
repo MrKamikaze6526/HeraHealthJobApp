@@ -1035,14 +1035,20 @@ async function renderPage() {
             // Status badge color
             let badgeColor = '#e0e0e0', badgeText = '#222', badgeBorder = '#bbb', boxBorder = '#b5d0ff', boxBg = '#f6f9ff';
             if ((app.status || '').toLowerCase() === 'accepted') {
-              badgeColor = '#7fffd4'; badgeText = '#006644'; badgeBorder = '#3be6a0';
-              boxBorder = '#3be6a0'; boxBg = '#eafff6';
+              badgeColor = '#a7f3d0'; badgeText = '#065f46'; badgeBorder = '#10b981';
+              boxBorder = '#10b981'; boxBg = '#d1fae5';
             } else if ((app.status || '').toLowerCase() === 'submitted') {
               badgeColor = '#ffe6a0'; badgeText = '#b97a00'; badgeBorder = '#ffc43a';
               boxBorder = '#ffc43a'; boxBg = '#fffbe6';
-            } else if ((app.status || '').toLowerCase() === 'rejected') {
-              badgeColor = '#ffd6d6'; badgeText = '#c00'; badgeBorder = '#ff7a7a';
-              boxBorder = '#ff7a7a'; boxBg = '#fff0f0';
+            } else if ((app.status || '').toLowerCase() === 'under review') {
+              badgeColor = '#93c5fd'; badgeText = '#1e3a8a'; badgeBorder = '#2563eb';
+              boxBorder = '#2563eb'; boxBg = '#dbeafe';
+            } else if ((app.status || '').toLowerCase() === 'interview') {
+              badgeColor = '#d8b4fe'; badgeText = '#7c3aed'; badgeBorder = '#8b5cf6';
+              boxBorder = '#8b5cf6'; boxBg = '#e9d5ff';
+            } else if ((app.status || '').toLowerCase() === 'rejected' || (app.status || '').toLowerCase() === 'denied') {
+              badgeColor = '#dc2626'; badgeText = '#ffffff'; badgeBorder = '#dc2626';
+              boxBorder = '#dc2626'; boxBg = '#fef2f2';
             }
             html += `
               <div style="background:${boxBg};border:2.5px solid ${boxBorder};border-radius:14px;padding:1.1rem 1.5rem;box-shadow:0 2px 8px rgba(60,80,180,0.07);display:flex;align-items:center;gap:1.2rem;justify-content:space-between;">
