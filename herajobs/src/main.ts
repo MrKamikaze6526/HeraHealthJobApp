@@ -542,30 +542,90 @@ async function renderPage() {
       if (adminJobListings) adminJobListings.innerHTML = `<div style="color:#c00;text-align:center;">Error loading jobs: ${error.message}</div>`;
       return;
     }
-    
+
     // Update admin stats if on admin page
     if (hash === '#admin' && sessionStorage.getItem('adminAuthed') === 'true') {
       const totalJobsSpan = document.getElementById('total-jobs');
       if (totalJobsSpan) totalJobsSpan.textContent = jobs?.length.toString() || '0';
-      
+
       // Get total applications count
       const { data: allApps } = await supabase.from('applications').select('id');
       const totalAppsSpan = document.getElementById('total-applications');
       if (totalAppsSpan) totalAppsSpan.textContent = allApps?.length.toString() || '0';
     }
-    
+
     const jobListings = document.getElementById('job-listings');
     const adminJobListings = document.getElementById('admin-job-listings');
-    // Render jobs as dropdowns or show empty message
-    async function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean, isLoggedIn: boolean = false) {
-      if (!jobs || jobs.length === 0) {
-        container.innerHTML = `<div style="text-align:center;color:#1a237e;background:#e3e9f7;font-weight:600;margin:2rem 0;padding:1.2rem 0.5rem;border-radius:8px;">No job openings available, come back soon!</div>`;
+
+    // --- SEARCH BAR LOGIC ---
+    // Only add search bar for jobs page (not admin)
+    if (jobListings && hash === '#jobs') {
+      // Insert search bar and sort dropdown above job listings
+      let searchBar = document.getElementById('job-search-bar');
+      if (!searchBar) {
+        searchBar = document.createElement('div');
+        searchBar.id = 'job-search-bar';
+        searchBar.style.display = 'flex';
+        searchBar.style.justifyContent = 'center';
+        searchBar.style.alignItems = 'center';
+        searchBar.style.gap = '1rem';
+        searchBar.style.margin = '1.2rem auto 1.5rem auto';
+        searchBar.innerHTML = `
+          <input id="job-search-input" type="text" placeholder="Search jobs by name..." 
+            style="width:100%;max-width:320px;padding:0.7rem 1.2rem;background:#fff;border:2px solid #3b82f6;border-radius:8px;font-size:1.1rem;box-shadow:0 1px 4px rgba(60,80,180,0.07);color:#1a237e;font-weight:500;transition:border-color 0.2s;outline:none;"
+            onfocus="this.style.borderColor='#1a237e'" onblur="this.style.borderColor='#3b82f6'"
+          />
+          <select id="job-sort-select" style="max-width:200px;padding:0.7rem 1.2rem;background:#fff;border:2px solid #3b82f6;border-radius:8px;font-size:1.05rem;color:#1a237e;font-weight:500;outline:none;">
+            <option value="az">Sort: Title A-Z</option>
+            <option value="za">Sort: Title Z-A</option>
+            <option value="location">Sort: Location</option>
+            <option value="worktype">Sort: Work Type</option>
+            <option value="salary">Sort: Salary Range (Low to High)</option>
+          </select>
+        `;
+        jobListings.parentElement?.insertBefore(searchBar, jobListings);
+      }
+    }
+
+    // --- FILTERING LOGIC ---
+    // Helper to render jobs with optional filter
+    async function renderJobDropdowns(container: HTMLElement, jobs: any[], isAdmin: boolean, isLoggedIn: boolean = false, filter: string = '') {
+      let filteredJobs = jobs;
+      if (filter) {
+        const filterLower = filter.toLowerCase();
+        filteredJobs = jobs.filter(job => (job.title || '').toLowerCase().includes(filterLower));
+      }
+      // --- SORTING LOGIC ---
+      const sortSelect = document.getElementById('job-sort-select') as HTMLSelectElement | null;
+      let sortValue = sortSelect ? sortSelect.value : 'az';
+      if (sortValue === 'az') {
+        filteredJobs = filteredJobs.slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      } else if (sortValue === 'za') {
+        filteredJobs = filteredJobs.slice().sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      } else if (sortValue === 'location') {
+        filteredJobs = filteredJobs.slice().sort((a, b) => (a.location || '').localeCompare(b.location || ''));
+      } else if (sortValue === 'worktype') {
+        // Try to sort by work_type, fallback to workType or type
+        const getType = (job: any) => job.work_type || job.workType || job.type || '';
+        filteredJobs = filteredJobs.slice().sort((a, b) => getType(a).localeCompare(getType(b)));
+      } else if (sortValue === 'salary') {
+        // Parse the first number in the salary string for sorting
+        const parseSalary = (salary: string | undefined) => {
+          if (!salary) return Number.POSITIVE_INFINITY;
+          // Remove $ , - and get the first number
+          const match = salary.replace(/[$,]/g, '').match(/\d+/);
+          return match ? parseInt(match[0], 10) : Number.POSITIVE_INFINITY;
+        };
+        filteredJobs = filteredJobs.slice().sort((a, b) => parseSalary(a.salary) - parseSalary(b.salary));
+      }
+      if (!filteredJobs || filteredJobs.length === 0) {
+        container.innerHTML = `<div style="text-align:center;color:#1a237e;background:#e3e9f7;font-weight:600;margin:2rem 0;padding:1.2rem 0.5rem;border-radius:8px;">No job openings available${filter ? ' matching your search.' : ', come back soon!'} </div>`;
         return;
       }
       // Get application counts for each job if in admin mode
       let jobApplicationCounts: { [key: string]: number } = {};
       if (isAdmin) {
-        for (const job of jobs) {
+        for (const job of filteredJobs) {
           const jobId = job.id ?? job.ID ?? job.Id ?? job.job_id;
           if (jobId) {
             try {
@@ -581,7 +641,7 @@ async function renderPage() {
           }
         }
       }
-      container.innerHTML = jobs.map((job) => {
+      container.innerHTML = filteredJobs.map((job) => {
         // Find the job's ID column
         const jobId = job.id ?? job.ID ?? job.Id ?? job.job_id;
         const applicationCount = isAdmin ? jobApplicationCounts[jobId] || 0 : 0;
@@ -665,7 +725,7 @@ async function renderPage() {
             }
           });
         });
-        
+
         // Edit job logic
         container.querySelectorAll('.edit-job-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -680,13 +740,13 @@ async function renderPage() {
                   .select('*')
                   .eq('id', jobId)
                   .single();
-                
+
                 if (error) {
                   console.error('Error fetching job:', error);
                   alert('Error loading job data for editing.');
                   return;
                 }
-                
+
                 if (job) {
                   showEditJobForm(job);
                 }
@@ -697,7 +757,7 @@ async function renderPage() {
             }
           });
         });
-        
+
         // Delete logic
         container.querySelectorAll('.delete-job-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -719,7 +779,7 @@ async function renderPage() {
           });
         });
       }
-      
+
       // Apply button logic for logged-in users
       if (isLoggedIn && !isAdmin) {
         container.querySelectorAll('.apply-job-btn').forEach(btn => {
@@ -735,7 +795,7 @@ async function renderPage() {
           });
         });
       }
-      
+
       // Log in to apply button logic for non-authenticated users
       if (!isLoggedIn && !isAdmin) {
         container.querySelectorAll('.login-to-apply-btn').forEach(btn => {
@@ -747,8 +807,24 @@ async function renderPage() {
         });
       }
     }
+
+    // Initial render (no filter)
     if (jobListings && hash === '#jobs') {
       await renderJobDropdowns(jobListings, jobs || [], false, isLoggedIn);
+      // Add search input and sort select event listeners
+      const searchInput = document.getElementById('job-search-input') as HTMLInputElement | null;
+      const sortSelect = document.getElementById('job-sort-select') as HTMLSelectElement | null;
+      if (searchInput) {
+        searchInput.addEventListener('input', async () => {
+          await renderJobDropdowns(jobListings, jobs || [], false, isLoggedIn, searchInput.value);
+        });
+      }
+      if (sortSelect) {
+        sortSelect.addEventListener('change', async () => {
+          const filterValue = searchInput ? searchInput.value : '';
+          await renderJobDropdowns(jobListings, jobs || [], false, isLoggedIn, filterValue);
+        });
+      }
     }
     if (adminJobListings && hash === '#admin') {
       await renderJobDropdowns(adminJobListings, jobs || [], true, isLoggedIn);
