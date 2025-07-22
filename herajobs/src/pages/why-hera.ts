@@ -1,3 +1,19 @@
+/**
+ * why-hera.ts
+ *
+ * Renders the "Why Hera" informational page for Hera Health Solutions SPA.
+ *
+ * Exports:
+ * - renderWhyHera: Render the Why Hera page HTML
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
+/**
+ * Render the "Why Hera" informational page.
+ * @returns HTML string for the Why Hera page
+ */
 export function renderWhyHera() {
   return `
     <section class="hero">

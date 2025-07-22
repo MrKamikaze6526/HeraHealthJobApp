@@ -1,6 +1,19 @@
 // Supabase Setup Utility
 // This script helps set up the required Supabase storage bucket for resumes
 
+/**
+ * supabase-setup.ts
+ *
+ * Utility script to set up the required Supabase storage bucket for resumes.
+ * Used for initial project setup and admin operations.
+ *
+ * Exports:
+ * - setupResumesBucket: Create and test the resumes bucket in Supabase Storage
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
 // Use environment variables with fallbacks
@@ -14,6 +27,11 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Function to set up the resumes bucket
+/**
+ * Set up the resumes bucket in Supabase Storage.
+ * Checks for existence, creates if needed, and tests access.
+ * @returns true if setup successful, false otherwise
+ */
 export async function setupResumesBucket() {
   try {
     console.log('🔧 Setting up Supabase storage bucket...');

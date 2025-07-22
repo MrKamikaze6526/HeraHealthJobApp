@@ -1,75 +1,46 @@
-# Hera Health Solutions Job Application Tracker
 
-A modern job application tracking system built with Vite, TypeScript, and Supabase.
+# Hera Health Solutions Job Application Portal
 
-## 🔒 Security Setup
+## Deployment
+All features are published and hosted on [Render](https://render.com/). The live site URL will be provided by the project owner or IT team.
 
-⚠️ **IMPORTANT**: Never commit sensitive credentials to your repository!
+## Features
+- **Job Listings:** Browse all open positions with search and sort options.
+- **Job Application:** Apply online with a detailed form and resume upload (PDF, DOC, DOCX).
+- **User Authentication:** Register and log in to apply and track your applications.
+- **Application Status:** Logged-in users can view the status of their applications.
+- **Admin Dashboard:** Secure admin area for posting/editing jobs, viewing applicants, and managing application statuses.
 
-### Environment Variables
+## Adding to Wix
+To add the job portal to your Wix website:
+1. **Get the Render deployment link** (e.g., `https://your-app.onrender.com`).
+2. In Wix Editor, add a button or menu item where you want the job portal link.
+3. Set the button's link to the Render URL. (Open in a new tab is recommended.)
+4. Optionally, use Wix's HTML iframe/embed widget to embed the portal, but linking is simpler and more robust.
 
-This project uses environment variables to keep sensitive information secure. 
+## How Each Page Works
+- **Home:** Welcome page with company info and a button to view open positions.
+- **Jobs:** Lists all available jobs. Users can search, sort, and view job details. "Apply" button is shown for logged-in users.
+- **Apply:** Application form for a selected job. Users must be logged in to access. Includes personal info, experience, and resume upload.
+- **Why Hera:** Company mission, story, and background.
+- **Login/Register:** User authentication for applicants.
+- **Application Status:** (In account menu) Shows logged-in users the status of all their applications.
+- **Admin:** Password-protected dashboard for job and application management.
 
-1. **Copy the example environment file:**
-   ```bash
-   cp .env.example .env
-   ```
+## Admin Access
+- Go to the `/admin` page (e.g., `https://your-app.onrender.com/#admin`).
+- Enter the admin password (provided separately) to access the dashboard.
+- Admins can:
+  - Add, edit, or delete job postings
+  - View all applications for each job
+  - Update application statuses (e.g., Under Review, Interview, Accepted, Denied)
+  - Download or view applicant resumes
 
-2. **Update `.env` with your actual values:**
-   ```bash
-   VITE_SUPABASE_URL=your-actual-supabase-url
-   VITE_SUPABASE_ANON_KEY=your-actual-anon-key
-   VITE_ADMIN_PASSWORD=your-secure-admin-password
-   ```
+## Other Notes
+- **Security:** Only authorized admins should have the admin password. All applicant data is stored securely in Supabase.
+- **Resume Storage:** Uploaded resumes are stored in a secure Supabase bucket and can be downloaded by admins.
+- **Support:** For technical issues, contact the project maintainer or IT team.
 
-3. **Never commit `.env` to git** - it's already in `.gitignore`
+---
 
-### Security Features
-
-- ✅ Environment variable configuration
-- ✅ Content Security Policy headers
-- ✅ XSS protection
-- ✅ CSRF protection through Supabase
-- ✅ Admin password protection
-- ✅ Secure file upload validation
-
-### For Deployment
-
-When deploying to Render, Vercel, or other platforms:
-
-1. Set environment variables in your hosting platform's dashboard
-2. Use the same variable names as in `.env.example`
-3. Use strong, unique passwords for production
-4. Consider implementing rate limiting in Supabase
-
-## 🚀 Development
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-```
-
-## 📦 Deployment
-
-The application is configured for easy deployment to:
-- Render
-- Vercel
-- Netlify
-- Any static hosting platform
-
-Make sure to set the environment variables in your hosting platform's settings.
-
-## 🔧 Features
-
-- Public job listings (no login required)
-- Secure application process (login required)
-- Admin dashboard for managing jobs and applications
-- Resume upload functionality
-- Email notifications
-- Responsive design
+*For IT and web admins: See `README-IT-INTEGRATION.md` for technical deployment and configuration details.*

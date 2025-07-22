@@ -1,4 +1,21 @@
-// Import global styles
+/**
+ * main.ts
+ *
+ * Main entry point for the Hera Health Solutions job application SPA.
+ * Handles routing, authentication, job listing, application submission, and admin features.
+ *
+ * Key responsibilities:
+ * - SPA navigation and hash-based routing
+ * - User authentication (register, login, logout) via Supabase
+ * - Rendering jobs, job search, and sorting
+ * - Application form and submission
+ * - Admin dashboard for job CRUD and application management
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
+// Import global styles and dependencies
 import './style.css'
 import { createClient } from '@supabase/supabase-js';
 import { renderHome } from './pages/home.ts';
@@ -7,7 +24,8 @@ import { renderJobs } from './pages/jobs.ts';
 import { renderAdmin } from './pages/admin.ts';
 import { renderApply } from './pages/apply.ts';
 
-// Initialize Supabase client
+// --- Supabase Initialization ---
+// Read environment variables for Supabase project
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -15,9 +33,15 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase configuration. Please check your environment variables.');
 }
 
+// Exported Supabase client for use throughout the app
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Helper: Register user in Supabase
+/**
+ * Register a new user in Supabase Auth.
+ * @param email User's email address
+ * @param password User's password
+ * @returns { error?: string }
+ */
 async function registerUser(email: string, password: string): Promise<{ error?: string }> {
   // Register user without any options (Supabase project settings control email verification)
   const { error } = await supabase.auth.signUp({ email, password });
@@ -25,7 +49,12 @@ async function registerUser(email: string, password: string): Promise<{ error?: 
   return {};
 }
 
-// Helper: Login user in Supabase
+/**
+ * Log in a user using Supabase Auth.
+ * @param email User's email address
+ * @param password User's password
+ * @returns { error?: string }
+ */
 async function loginUser(email: string, password: string): Promise<{ error?: string }> {
   // Try to log in, and if error is 'Email not confirmed', treat as success for now
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -37,27 +66,39 @@ async function loginUser(email: string, password: string): Promise<{ error?: str
   return {};
 }
 
-// Remove in-memory isLoggedIn, use Supabase session instead
-// Helper: Check if user is logged in
+/**
+ * Check if a user is currently logged in (via Supabase session).
+ * @returns boolean
+ */
 async function checkLoggedIn(): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
   return !!session;
 }
 
-// Helper: Log out user
+/**
+ * Log out the current user and redirect to home.
+ */
 async function logoutUser() {
   await supabase.auth.signOut();
   window.location.hash = '#home';
 }
 
 // --- Applicant Functionality ---
-// Helper: Get current user info
+
+/**
+ * Get the current logged-in user from Supabase Auth.
+ * @returns Supabase user object or null
+ */
 async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
 }
 
-// Helper: Ensure resumes bucket exists
+/**
+ * Ensure the 'resumes' storage bucket exists in Supabase Storage.
+ * Creates the bucket if it does not exist.
+ * Handles errors gracefully for upload logic.
+ */
 async function ensureResumesBucket(): Promise<void> {
   try {
     // Check if bucket exists
@@ -85,7 +126,14 @@ async function ensureResumesBucket(): Promise<void> {
   }
 }
 
-// Helper: Upload resume to Supabase Storage
+/**
+ * Upload a resume file to Supabase Storage for a given user and job.
+ * Validates file type and size, ensures bucket exists.
+ * @param file File object to upload
+ * @param userId User's Supabase ID
+ * @param jobId Job ID
+ * @returns Path to uploaded file in storage
+ */
 async function uploadResume(file: File, userId: string, jobId: string): Promise<string> {
   try {
     // Ensure bucket exists first
@@ -125,13 +173,22 @@ async function uploadResume(file: File, userId: string, jobId: string): Promise<
   }
 }
 
-// Helper: Get public URL for resume
+/**
+ * Get a public URL for a resume file stored in Supabase Storage.
+ * @param path Path to the file in storage
+ * @returns Public URL string
+ */
 export function getResumeUrl(path: string): string {
   const { data } = supabase.storage.from('resumes').getPublicUrl(path);
   return data.publicUrl;
 }
 
-// Helper: Submit application
+/**
+ * Submit a job application to the database.
+ * Handles resume upload, data validation, and error handling.
+ * @param {Object} fields - All application fields
+ * @returns void
+ */
 export async function submitApplication({ 
   jobId, name, email, phone, dob, street, city, state, country, 
   education, experience, elevatorPitch, hearAbout, gender, ethnicity,
@@ -184,6 +241,7 @@ export async function submitApplication({
     console.log('Elevator pitch type:', typeof elevatorPitch);
     console.log('Elevator pitch length:', elevatorPitch?.length);
 
+    // Insert application into Supabase
     const { error } = await supabase.from('applications').insert([
       {
         job_id: jobId,
@@ -214,10 +272,9 @@ export async function submitApplication({
     ]);
     
     if (error) {
+      // Handle specific error cases
       console.error('Application submission error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      
-      // Handle specific error cases
       if (error.message.includes('row-level security')) {
         throw new Error('Database security policy error. Please contact support or check the RLS setup guide.');
       } else if (error.message.includes('duplicate key')) {
@@ -230,9 +287,8 @@ export async function submitApplication({
         throw new Error(`Application submission failed: ${error.message}`);
       }
     } else {
+      // Verification: Query the just-inserted record
       console.log('Application submitted successfully!');
-      
-      // Verify the insertion by querying the just-inserted record
       const { data: insertedApp, error: queryError } = await supabase
         .from('applications')
         .select('id, elevator_pitch, name')
@@ -240,7 +296,6 @@ export async function submitApplication({
         .eq('job_id', jobId)
         .order('submitted_at', { ascending: false })
         .limit(1);
-        
       if (insertedApp && insertedApp.length > 0) {
         console.log('Verification: Just inserted application:', insertedApp[0]);
         console.log('Verification: elevator_pitch value:', insertedApp[0].elevator_pitch);
@@ -254,14 +309,22 @@ export async function submitApplication({
   }
 }
 
-// Helper: Get applications for a user
+/**
+ * Get all applications submitted by a specific user.
+ * @param userId Supabase user ID
+ * @returns Array of application objects
+ */
 async function getUserApplications(userId: string): Promise<any[]> {
   const { data, error } = await supabase.from('applications').select('*').eq('user_id', userId);
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-// Helper: Get applications for a job (admin)
+/**
+ * Get all applications for a specific job (admin only).
+ * @param jobId Job ID
+ * @returns Array of application objects
+ */
 export async function getJobApplications(jobId: string): Promise<any[]> {
   console.log('Fetching applications for job ID:', jobId);
   const { data, error } = await supabase.from('applications').select('*').eq('job_id', jobId);
@@ -280,13 +343,20 @@ export async function getJobApplications(jobId: string): Promise<any[]> {
   return data || [];
 }
 
-// Helper: Update application status (admin)
+/**
+ * Update the status of an application (admin only).
+ * @param appId Application ID
+ * @param status New status string
+ */
 export async function updateApplicationStatus(appId: string, status: string): Promise<void> {
   const { error } = await supabase.from('applications').update({ status }).eq('id', appId);
   if (error) throw new Error(error.message);
 }
 
-// Helper: Show edit job form (admin)
+/**
+ * Populate and show the job edit form in the admin dashboard.
+ * @param job Job object to edit
+ */
 function showEditJobForm(job: any): void {
   const form = document.getElementById('job-form') as HTMLFormElement;
   const showFormBtn = document.getElementById('show-job-form-btn') as HTMLButtonElement;

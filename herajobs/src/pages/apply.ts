@@ -1,7 +1,26 @@
 // Application form page module
 // Exports renderApply for the application form page
+/**
+ * apply.ts
+ *
+ * Renders the job application form page for Hera Health Solutions SPA.
+ * Handles fetching job info and generating the application form HTML.
+ *
+ * Exports:
+ * - renderApply: Render the application form for a given job
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
 import { supabase } from '../main';
 
+/**
+ * Render the application form for a given job ID.
+ * Fetches job info and returns HTML for the application form.
+ * @param jobId Job ID to apply for
+ * @returns HTML string for the application form
+ */
 export async function renderApply(jobId: string): Promise<string> {
   // Fetch job info
   const { data: job } = await supabase.from('jobs').select('*').eq('id', jobId).single();

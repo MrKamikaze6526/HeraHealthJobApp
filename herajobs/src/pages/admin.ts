@@ -1,8 +1,26 @@
-// Admin page module
-// Exports renderAdmin for the admin page
+
+/**
+ * admin.ts
+ *
+ * Admin dashboard logic for Hera Health Solutions job application SPA.
+ * Handles viewing applicants, downloading resumes, and rendering admin modals.
+ *
+ * Exports:
+ * - downloadResume: Download applicant resumes from Supabase Storage
+ * - showApplicantsModal: Render modal with all applicants for a job
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
 import { supabase, getJobApplications, updateApplicationStatus, getResumeUrl } from '../main';
 
-// Helper: Download resume file
+/**
+ * Download a resume file from Supabase Storage for a given applicant.
+ * Handles error cases and triggers a browser download.
+ * @param resumePath Path to the resume file in storage
+ * @param applicantName Name of the applicant (for filename)
+ */
 export async function downloadResume(resumePath: string, applicantName: string): Promise<void> {
   try {
     const { data, error } = await supabase.storage
@@ -42,6 +60,12 @@ export async function downloadResume(resumePath: string, applicantName: string):
 }
 
 // Helper: Render applicants modal
+/**
+ * Render a modal displaying all applicants for a given job.
+ * Fetches applications and displays applicant info, status, and download links.
+ * @param jobId Job ID to fetch applications for
+ * @param jobTitle Title of the job (for modal header)
+ */
 export async function showApplicantsModal(jobId: string, jobTitle: string): Promise<void> {
   try {
     const apps = await getJobApplications(jobId);

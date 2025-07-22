@@ -1,4 +1,20 @@
 // Home page module for Hera Health Solutions job app
+/**
+ * home.ts
+ *
+ * Renders the home page for Hera Health Solutions job application SPA.
+ *
+ * Exports:
+ * - renderHome: Render the home page HTML
+ *
+ * Author: Hera Health Solutions
+ * Last updated: 2025-07-22
+ */
+
+/**
+ * Render the home page.
+ * @returns HTML string for the home page
+ */
 export function renderHome() {
   return `
     <section class="hero">
