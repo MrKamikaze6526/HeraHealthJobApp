@@ -36,10 +36,16 @@ To add the job portal to your Wix website:
   - Update application statuses (e.g., Under Review, Interview, Accepted, Denied)
   - Download or view applicant resumes
 
-## Other Notes
-- **Security:** Only authorized admins should have the admin password. All applicant data is stored securely in Supabase.
+
+## Supabase & Data Management
+- All applicant and job data, as well as uploaded resumes, are securely managed using [Supabase](https://supabase.com/).
+- Supabase handles authentication, database storage, and file storage for resumes.
+- **Credentials & Access:** The supervisor of this project will have all Supabase project credentials and access. IT and web admins do not need to set up or modify Supabase directly.
+- **Security:** Only authorized admins should have the admin password. All applicant data is stored securely in Supabase, and resume files are only accessible to admins.
 - **Resume Storage:** Uploaded resumes are stored in a secure Supabase bucket and can be downloaded by admins.
-- **Support:** For technical issues, contact the project maintainer or IT team.
+
+## Support
+- For technical issues, contact the project maintainer, IT team, or the project supervisor.
 
 ---
 
