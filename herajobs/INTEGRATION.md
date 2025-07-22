@@ -1,8 +1,45 @@
 
-# Hera Health Solutions Job Application Portal
+# Hera Health Solutions Job Application Portal Integration
+
 
 ## Deployment
 All features are published and hosted on [Render](https://render.com/). The live site URL will be provided by the project owner or IT team. Currently at heracareers.onrender.com
+
+---
+
+## Prerequisites: Installing Node.js, Vite, and React
+
+This project is built with [Vite](https://vitejs.dev/) (a fast frontend build tool) and [React](https://react.dev/) for the UI. You need Node.js and npm to run and build the project locally or on Render.
+
+### 1. Install Node.js and npm
+
+- Download and install Node.js (which includes npm) from [nodejs.org](https://nodejs.org/). Use the LTS (Long Term Support) version for best compatibility.
+- After installation, check your versions:
+
+```sh
+node --version
+npm --version
+```
+
+### 2. Install Vite and React (Project Dependencies)
+
+You do **not** need to install Vite or React globally. They are included as dependencies in this project. When you run `npm install`, both Vite and React (and all other dependencies) will be installed automatically based on the `package.json` file.
+
+### 3. How Vite/React Tie Into Render Deployment
+
+- **Vite** is used for both local development (`npm run dev`) and building the production site (`npm run build`).
+- **React** is the JavaScript framework used for the UI components and pages.
+- When you deploy to Render, Render will run the build command (`npm install && npm run build`) to generate the static files in the `dist/` folder. These are then served as your live website.
+- The start command (`npm run preview` or a static site host) tells Render how to serve the built site.
+
+**Summary of Build Commands:**
+
+- `npm install` — Installs all dependencies (including Vite, React, etc.)
+- `npm run dev` — Starts a local development server (for previewing changes)
+- `npm run build` — Builds the production-ready static site (output in `dist/`)
+- `npm run preview` — Serves the built site locally (used by Render for preview/static hosting)
+
+---
 
 ## Features
 - **Job Listings:** Browse all open positions with search and sort options.
