@@ -2,7 +2,7 @@
 # Hera Health Solutions Job Application Portal
 
 ## Deployment
-All features are published and hosted on [Render](https://render.com/). The live site URL will be provided by the project owner or IT team.
+All features are published and hosted on [Render](https://render.com/). The live site URL will be provided by the project owner or IT team. Currently at heracareers.onrender.com
 
 ## Features
 - **Job Listings:** Browse all open positions with search and sort options.
@@ -47,6 +47,118 @@ To add the job portal to your Wix website:
 ## Support
 - For technical issues, contact the project maintainer, IT team, or the project supervisor.
 
+
+## Removing the Home or Why Hera Pages
+
+If you want to remove the **Home** or **Why Hera** pages from the portal:
+
+### To Remove the Home Page:
+1. Delete or rename the file `src/pages/home.ts`.
+2. Remove any navigation links or buttons that point to the Home page in your navigation/menu code (typically in your main layout or navigation component).
+3. If Home is the default route, set another page (e.g., Jobs) as the default in your routing logic.
+
+### To Remove the Why Hera Page:
+1. Delete or rename the file `src/pages/why-hera.ts`.
+2. Remove any navigation links or buttons that point to the Why Hera page in your navigation/menu code.
+
+After making these changes, rebuild and redeploy the project to update the live site.
+
 ---
 
-*For IT and web admins: See `README-IT-INTEGRATION.md` for technical deployment and configuration details.*
+## How to Modify and Publish This Portal on Render (Step-by-Step)
+
+This section explains how to make changes to the code, configure environment variables, and deploy your own version of the portal using [Render](https://render.com/).
+
+### 1. Prerequisites
+
+- A [Render](https://render.com/) account (free or paid)
+- Access to the Supabase project (for database, authentication, and storage)
+- The admin password (for admin dashboard access)
+- Basic knowledge of Git and Node.js (recommended)
+
+### 2. Clone or Fork the Repository
+
+Clone this repository to your local machine, or fork it on GitHub and then clone your fork:
+
+```sh
+git clone https://github.com/YourOrgOrUser/HeraHealthJobApp.git
+cd HeraHealthJobApp/herajobs
+```
+
+### 3. Install Dependencies
+
+Install Node.js dependencies:
+
+```sh
+npm install
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the `herajobs` directory (or use Render's dashboard to set these as environment variables):
+
+```
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_ADMIN_PASSWORD=your-admin-password
+```
+
+- **VITE_SUPABASE_URL**: Found in your Supabase project settings (API > Project URL)
+- **VITE_SUPABASE_ANON_KEY**: Found in your Supabase project settings (API > anon public key)
+- **VITE_ADMIN_PASSWORD**: Set this to any strong password you want for admin access
+
+**On Render:** Go to your service > Environment > Add Environment Variable for each of the above.
+
+### 5. Make Code Changes
+
+- Edit any files in the `src/` directory to change pages, styles, or logic.
+- Update `src/pages/home.ts`, `src/pages/why-hera.ts`, or other page files as needed.
+- Change styles in `src/style.css`.
+- Update navigation/menu in `src/main.ts` if you add or remove pages.
+- Test locally by running:
+
+```sh
+npm run dev
+```
+
+Visit `http://localhost:5173` to preview your changes.
+
+### 6. Commit and Push Changes
+
+If you forked or cloned from GitHub, commit and push your changes:
+
+```sh
+git add .
+git commit -m "Describe your changes"
+git push origin main
+```
+
+### 7. Deploy on Render
+
+#### Option 1: Connect GitHub Repo
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click **New Web Service**
+3. Connect your GitHub repo (or fork)
+4. Set the root directory to `herajobs` if prompted
+5. Set the build command: `npm install && npm run build`
+6. Set the start command: `npm run preview` (for static preview) or use a static site build if using Vite
+7. Add the environment variables as described above
+8. Click **Create Web Service**
+
+#### Option 2: Manual Deploy (Static Export)
+1. Run `npm run build` locally
+2. Upload the contents of the `dist/` folder to a static site host (Render Static Site, Netlify, Vercel, etc.)
+3. Set environment variables as needed in the host dashboard
+
+### 8. Updating the Live Site
+
+Any time you make changes, push to your main branch (or redeploy in Render) to update the live site.
+
+### 9. Troubleshooting
+
+- **Build Fails:** Check that all environment variables are set and correct.
+- **Supabase Errors:** Make sure your Supabase URL and anon key are correct and the Supabase project is active.
+- **Admin Login Not Working:** Ensure the admin password matches the one set in your environment variables.
+- **Static Assets Not Loading:** If using a static host, make sure all files in `dist/` are uploaded and paths are correct.
+
+---

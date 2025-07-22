@@ -101,10 +101,8 @@ button:focus-visible {
 .header {
   background: var(--nav-bg);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  position: fixed;
-  top: 0;
+  position: static;
   width: 100%;
-  z-index: 1000;
   height: 64px;
 }
 
@@ -180,18 +178,27 @@ button:focus-visible {
   color: var(--primary-blue);
 }
 
-main {
-  margin-top: 80px;
-}
+
 
 /* Hero section styles */
 .hero {
-  background: linear-gradient(135deg, var(--primary-blue) 70%, var(--light-blue) 100%);
+  position: relative;
+  min-height: 420px;
+  background:
+    linear-gradient(135deg, rgba(7,32,68,0.92) 70%, rgba(123,179,245,0.7) 100%),
+    url('https://static.wixstatic.com/media/980f41_87409c817d644a9da539aa4d87bf1e31~mv2.png/v1/fill/w_1536,h_834,al_c,q_90,enc_avif,quality_auto/980f41_87409c817d644a9da539aa4d87bf1e31~mv2.png') center/cover no-repeat;
   color: var(--white);
-  padding: 4.5rem 0 2.5rem;
+  padding: 7.5rem 0 4.5rem;
   text-align: center;
-  margin-top: 0;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 24px rgba(7,32,68,0.08);
+  overflow: hidden;
 }
+
 
 .hero h2 {
   font-size: 2.3rem;
